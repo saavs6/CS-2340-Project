@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-3 mt-4">
+  <div class="container">
+    <div class="row">
+      <div class="col-12">
+        <h1 class="mb-4">Job Search Dashboard</h1>
+        <p class="lead">Welcome to your job search hub! Find opportunities that match your skills and interests.</p>
+      </div>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-md-4 mb-4">
+        <div class="card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-search fa-3x text-primary mb-3"></i>
+            <h5 class="card-title">Find Jobs</h5>
+            <p class="card-text">Search through thousands of job postings to find your perfect match.</p>
+            <a href="{% url 'applicants:job_search' %}" class="btn btn-primary">Search Jobs</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4 mb-4">
+        <div class="card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-file-alt fa-3x text-success mb-3"></i>
+            <h5 class="card-title">My Applications</h5>
+            <p class="card-text">Track your job applications and see their status.</p>
+            <a href="{% url 'applicants:applications' %}" class="btn btn-success">View Applications</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4 mb-4">
+        <div class="card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-user fa-3x text-info mb-3"></i>
+            <h5 class="card-title">My Profile</h5>
+            <p class="card-text">Manage your profile, resume, and job preferences.</p>
+            <a href="{% url 'applicants:profile' %}" class="btn btn-info">Edit Profile</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Recent Activity</h5>
+          </div>
+          <div class="card-body">
+            <p class="text-muted">Your recent job search activity will appear here.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

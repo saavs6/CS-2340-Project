@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-3 mt-4">
+  <div class="container">
+    <div class="row">
+      <div class="col-12">
+        <h1 class="mb-4">Hiring Dashboard</h1>
+        <p class="lead">Welcome to your hiring hub! Find and manage the best talent for your company.</p>
+      </div>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-md-4 mb-4">
+        <div class="card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-briefcase fa-3x text-primary mb-3"></i>
+            <h5 class="card-title">Post Jobs</h5>
+            <p class="card-text">Create and manage job postings to attract top talent.</p>
+            <a href="{% url 'recruiters:job_postings' %}" class="btn btn-primary">Manage Jobs</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4 mb-4">
+        <div class="card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-users fa-3x text-success mb-3"></i>
+            <h5 class="card-title">Candidates</h5>
+            <p class="card-text">Review applications and manage your candidate pipeline.</p>
+            <a href="{% url 'recruiters:candidates' %}" class="btn btn-success">View Candidates</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4 mb-4">
+        <div class="card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-building fa-3x text-info mb-3"></i>
+            <h5 class="card-title">Company Profile</h5>
+            <p class="card-text">Manage your company information and branding.</p>
+            <a href="{% url 'recruiters:profile' %}" class="btn btn-info">Edit Profile</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Hiring Analytics</h5>
+          </div>
+          <div class="card-body">
+            <p class="text-muted">Your hiring metrics and analytics will appear here.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-3 mt-4">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card shadow p-3 mb-4 rounded">
+          <div class="card-body">
+            <h2>Sign Up</h2>
+            <hr />
+            <form method="POST">
+              {% csrf_token %}
+
+              <!-- Username field -->
+              <div class="mb-3">
+                <label for="{{ template_data.form.username.id_for_label }}" class="form-label">Username</label>
+                {{ template_data.form.username }}
+                {% if template_data.form.username.errors %}
+                  <div class="text-danger">{{ template_data.form.username.errors }}</div>
+                {% endif %}
+              </div>
+
+              <!-- Password fields -->
+              <div class="mb-3">
+                <label for="{{ template_data.form.password1.id_for_label }}" class="form-label">Password</label>
+                {{ template_data.form.password1 }}
+                {% if template_data.form.password1.errors %}
+                  <div class="text-danger">{{ template_data.form.password1.errors }}</div>
+                {% endif %}
+              </div>
+
+              <div class="mb-3">
+                <label for="{{ template_data.form.password2.id_for_label }}" class="form-label">Confirm Password</label>
+                {{ template_data.form.password2 }}
+                {% if template_data.form.password2.errors %}
+                  <div class="text-danger">{{ template_data.form.password2.errors }}</div>
+                {% endif %}
+              </div>
+
+              <!-- User Type Selection -->
+              <div class="mb-4">
+                <label class="form-label fw-bold">{{ template_data.form.user_type.label }}</label>
+                <div class="mt-2">
+                  {% for choice in template_data.form.user_type %}
+                    <div class="form-check">
+                      {{ choice.tag }}
+                      <label class="form-check-label" for="{{ choice.id_for_label }}">
+                        {{ choice.choice_label }}
+                      </label>
+                    </div>
+                  {% endfor %}
+                </div>
+                {% if template_data.form.user_type.errors %}
+                  <div class="text-danger">{{ template_data.form.user_type.errors }}</div>
+                {% endif %}
+              </div>
+
+              <button type="submit" class="btn bg-dark text-white w-100">Sign Up</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

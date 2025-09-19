@@ -1,9 +1,33 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Home page</title>
-</head>
-<body>
-  <h1>Welcome to the Home Page</h1>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block content %}
+<header class="masthead bg-index text-black text-center py-4">
+  <div class="container d-flex align-items-center bg-white flex-column pt-2">
+    <h2>LinkedOut</h2>
+    <p>Your Ticket to Unlimited Jobs!</p>
+  </div>
+</header>
+<div class="p-3">
+  <div class="container">
+    <div class="row mt-3">
+      <div class="col mx-auto text-center mb-3">
+        {% if template_data.is_applicant %}
+          <h4>Welcome back! Ready to find your next opportunity?</h4>
+          <p class="lead">Access your job search dashboard to find and apply for jobs.</p>
+          <a href="{% url 'applicants:dashboard' %}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+        {% elif template_data.is_recruiter %}
+          <h4>Welcome back! Ready to find great talent?</h4>
+          <p class="lead">Access your hiring dashboard to post jobs and manage candidates.</p>
+          <a href="{% url 'recruiters:dashboard' %}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+        {% else %}
+          <h4>Welcome to the best job finding site!!</h4>
+          <p class="lead">Join thousands of job seekers and employers who trust our platform.</p>
+          <div class="mt-4">
+            <a href="{% url 'accounts.signup' %}" class="btn btn-primary btn-lg me-3">Get Started</a>
+            <a href="{% url 'accounts.login' %}" class="btn btn-outline-primary btn-lg">Sign In</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
