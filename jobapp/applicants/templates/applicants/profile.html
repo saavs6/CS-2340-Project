@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-3 mt-4">
+  <div class="container">
+    <div class="row">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1>My Profile</h1>
+          <a href="{% url 'applicants:profile_edit' %}" class="btn btn-primary">
+            <i class="fas fa-edit"></i> Edit Profile
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Profile Header -->
+      <div class="col-12 mb-4">
+        <div class="card">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <h2 class="card-title">{{ template_data.profile.headline|default:"No headline set" }}</h2>
+                <p class="text-muted mb-2">
+                  <i class="fas fa-user"></i> {{ template_data.profile.user.get_full_name|default:template_data.profile.user.username }}
+                </p>
+                {% if template_data.profile.get_full_location %}
+                  <p class="text-muted mb-2">
+                    <i class="fas fa-map-marker-alt"></i> {{ template_data.profile.get_full_location }}
+                  </p>
+                {% endif %}
+                {% if template_data.profile.phone %}
+                  <p class="text-muted mb-2">
+                    <i class="fas fa-phone"></i> {{ template_data.profile.phone }}
+                  </p>
+                {% endif %}
+                {% if template_data.profile.summary %}
+                  <p class="mt-3">{{ template_data.profile.summary }}</p>
+                {% endif %}
+              </div>
+              <div class="col-md-4 text-md-end">
+                <div class="mb-2">
+                  {% if template_data.profile.is_public %}
+                    <span class="badge bg-success">Public Profile</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Private Profile</span>
+                  {% endif %}
+                </div>
+                <div class="mb-2">
+                  {% if template_data.profile.is_seeking_jobs %}
+                    <span class="badge bg-primary">Seeking Jobs</span>
+                  {% else %}
+                    <span class="badge bg-warning">Not Seeking Jobs</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Location Information -->
+      <div class="col-md-6 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Location & Work Preferences</h5>
+          </div>
+          <div class="card-body">
+            {% if template_data.profile.get_full_location %}
+              <p class="mb-2">
+                <strong>Location:</strong> {{ template_data.profile.get_full_location }}
+              </p>
+            {% endif %}
+
+            {% if template_data.profile.postal_code %}
+              <p class="mb-2">
+                <strong>Postal Code:</strong> {{ template_data.profile.postal_code }}
+              </p>
+            {% endif %}
+
+            <p class="mb-2">
+              <strong>Remote Work Preference:</strong>
+              <span class="badge bg-info">{{ template_data.profile.get_remote_work_preference_display }}</span>
+            </p>
+
+            {% if template_data.profile.willing_to_relocate %}
+              <p class="mb-2">
+                <i class="fas fa-check-circle text-success"></i>
+                <strong>Willing to relocate</strong>
+              </p>
+            {% else %}
+              <p class="mb-2">
+                <i class="fas fa-times-circle text-muted"></i>
+                <strong>Not willing to relocate</strong>
+              </p>
+            {% endif %}
+
+            {% if template_data.profile.has_coordinates %}
+              <p class="mb-0 text-muted">
+                <small><i class="fas fa-map"></i> Coordinates available for mapping</small>
+              </p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Skills -->
+      {% if template_data.profile.get_skills_list %}
+      <div class="col-md-6 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-tools"></i> Skills</h5>
+          </div>
+          <div class="card-body">
+            {% for skill in template_data.profile.get_skills_list %}
+              <span class="badge bg-light text-dark me-2 mb-2">{{ skill }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="row">
+      <!-- Contact Links -->
+      <div class="col-12 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-link"></i> Professional Links</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                {% if template_data.profile.linkedin_url %}
+                  <p class="mb-2">
+                    <i class="fab fa-linkedin text-primary"></i>
+                    <a href="{{ template_data.profile.linkedin_url }}" target="_blank" class="text-decoration-none">
+                      LinkedIn Profile
+                    </a>
+                  </p>
+                {% endif %}
+                {% if template_data.profile.github_url %}
+                  <p class="mb-2">
+                    <i class="fab fa-github text-dark"></i>
+                    <a href="{{ template_data.profile.github_url }}" target="_blank" class="text-decoration-none">
+                      GitHub Profile
+                    </a>
+                  </p>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                {% if template_data.profile.portfolio_url %}
+                  <p class="mb-2">
+                    <i class="fas fa-globe text-info"></i>
+                    <a href="{{ template_data.profile.portfolio_url }}" target="_blank" class="text-decoration-none">
+                      Portfolio Website
+                    </a>
+                  </p>
+                {% endif %}
+                {% if template_data.profile.other_url %}
+                  <p class="mb-2">
+                    <i class="fas fa-external-link-alt text-secondary"></i>
+                    <a href="{{ template_data.profile.other_url }}" target="_blank" class="text-decoration-none">
+                      Other Professional URL
+                    </a>
+                  </p>
+                {% endif %}
+              </div>
+            </div>
+            {% if not template_data.profile.linkedin_url and not template_data.profile.github_url and not template_data.profile.portfolio_url and not template_data.profile.other_url %}
+              <p class="text-muted">No professional links added yet.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Education -->
+      <div class="col-12 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-graduation-cap"></i> Education</h5>
+          </div>
+          <div class="card-body">
+            {% if template_data.profile.education.all %}
+              {% for education in template_data.profile.education.all %}
+                <div class="mb-4">
+                  <h6 class="mb-1">{{ education.degree }} in {{ education.field_of_study }}</h6>
+                  <p class="text-muted mb-1">{{ education.institution }}</p>
+                  <p class="text-muted mb-1">
+                    {{ education.start_date|date:"M Y" }} -
+                    {% if education.is_current %}
+                      Present
+                    {% else %}
+                      {{ education.end_date|date:"M Y" }}
+                    {% endif %}
+                  </p>
+                  {% if education.gpa %}
+                    <p class="text-muted mb-1">GPA: {{ education.gpa }}</p>
+                  {% endif %}
+                  {% if education.description %}
+                    <p class="mb-0">{{ education.description }}</p>
+                  {% endif %}
+                </div>
+                {% if not forloop.last %}<hr>{% endif %}
+              {% endfor %}
+            {% else %}
+              <p class="text-muted">No education information added yet.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Work Experience -->
+      <div class="col-12 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-briefcase"></i> Work Experience</h5>
+          </div>
+          <div class="card-body">
+            {% if template_data.profile.work_experience.all %}
+              {% for work in template_data.profile.work_experience.all %}
+                <div class="mb-4">
+                  <h6 class="mb-1">{{ work.position }}</h6>
+                  <p class="text-muted mb-1">{{ work.company }}</p>
+                  <p class="text-muted mb-1">
+                    {{ work.start_date|date:"M Y" }} -
+                    {% if work.is_current %}
+                      Present
+                    {% else %}
+                      {{ work.end_date|date:"M Y" }}
+                    {% endif %}
+                    {% if work.location %} • {{ work.location }}{% endif %}
+                  </p>
+                  {% if work.description %}
+                    <p class="mb-0">{{ work.description|linebreaks }}</p>
+                  {% endif %}
+                </div>
+                {% if not forloop.last %}<hr>{% endif %}
+              {% endfor %}
+            {% else %}
+              <p class="text-muted">No work experience added yet.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
