@@ -3,23 +3,103 @@
 {% block content %}
 <div class="container mt-4">
     <div class="row">
-        <div class="col-md-3">
+        <div class="col-lg-4 col-md-5">
             <!-- Search Filters -->
             <div class="card">
                 <div class="card-header">
-                    <h5>Search Jobs</h5>
+                    <h5 class="mb-0">Search Jobs</h5>
                 </div>
                 <div class="card-body">
                     <form method="GET">
-                        {{ form.as_p }}
-                        <button type="submit" class="btn btn-primary w-100">Search</button>
-                        <a href="{% url 'jobs:list' %}" class="btn btn-outline-secondary w-100 mt-2">Clear</a>
+                        <!-- Keywords -->
+                        <div class="mb-3">
+                            <label class="form-label small">{{ form.keywords.label }}</label>
+                            {{ form.keywords }}
+                        </div>
+                        
+                        <!-- Location -->
+                        <div class="mb-3">
+                            <label class="form-label small">{{ form.location.label }}</label>
+                            {{ form.location }}
+                        </div>
+                        
+                        <!-- Skills -->
+                        <div class="mb-3">
+                            <label class="form-label small">{{ form.skills.label }}</label>
+                            {{ form.skills }}
+                        </div>
+                        
+                        <!-- Salary -->
+                        <div class="mb-3">
+                            <label class="form-label small">{{ form.salary_min.label }}</label>
+                            {{ form.salary_min }}
+                        </div>
+                        
+                        <!-- Job Type -->
+                        <div class="mb-3">
+                            <label class="form-label small">Job Type</label>
+                            <div class="form-check-container">
+                                {% for choice in form.job_type %}
+                                    <div class="form-check form-check-sm">
+                                        {{ choice.tag }}
+                                        <label class="form-check-label small" for="{{ choice.id_for_label }}">
+                                            {{ choice.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Remote Type -->
+                        <div class="mb-3">
+                            <label class="form-label small">Work Type</label>
+                            <div class="form-check-container">
+                                {% for choice in form.remote_type %}
+                                    <div class="form-check form-check-sm">
+                                        {{ choice.tag }}
+                                        <label class="form-check-label small" for="{{ choice.id_for_label }}">
+                                            {{ choice.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Experience Level -->
+                        <div class="mb-3">
+                            <label class="form-label small">Experience Level</label>
+                            <div class="form-check-container">
+                                {% for choice in form.experience_level %}
+                                    <div class="form-check form-check-sm">
+                                        {{ choice.tag }}
+                                        <label class="form-check-label small" for="{{ choice.id_for_label }}">
+                                            {{ choice.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Visa Sponsorship -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.visa_sponsorship }}
+                                <label class="form-check-label small" for="{{ form.visa_sponsorship.id_for_label }}">
+                                    {{ form.visa_sponsorship.label }}
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Search</button>
+                            <a href="{% url 'jobs:list' %}" class="btn btn-outline-secondary">Clear</a>
+                        </div>
                     </form>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-9">
+        <div class="col-lg-8 col-md-7">
             <!-- Job Results -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h2>Job Listings</h2>
