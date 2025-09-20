@@ -13,10 +13,12 @@ def job_list(request):
     form = JobSearchForm(request.GET or None)
     jobs = Job.objects.filter(is_active=True)
     
-    if form.is_valid():
-        # Apply filters
-        if form.cleaned_data.get('keywords'):
-            keywords = form.cleaned_data['keywords']
+    # Process search filters from GET parameters directly
+    # This handles cases where form validation might fail due to format issues
+    if request.GET:
+        # Keywords search
+        keywords = request.GET.get('keywords', '').strip()
+        if keywords:
             jobs = jobs.filter(
                 Q(title__icontains=keywords) |
                 Q(company__icontains=keywords) |
@@ -24,32 +26,49 @@ def job_list(request):
                 Q(required_skills__icontains=keywords)
             )
         
-        if form.cleaned_data.get('location'):
-            location = form.cleaned_data['location']
+        # Location search
+        location = request.GET.get('location', '').strip()
+        if location:
             jobs = jobs.filter(
                 Q(city__icontains=location) |
                 Q(state__icontains=location) |
                 Q(country__icontains=location)
             )
         
-        if form.cleaned_data.get('job_type'):
-            jobs = jobs.filter(job_type__in=form.cleaned_data['job_type'])
+        # Job type filter (handle multiple values)
+        job_types = request.GET.getlist('job_type')
+        if job_types:
+            jobs = jobs.filter(job_type__in=job_types)
         
-        if form.cleaned_data.get('remote_type'):
-            jobs = jobs.filter(remote_type__in=form.cleaned_data['remote_type'])
+        # Remote type filter (handle multiple values)
+        remote_types = request.GET.getlist('remote_type')
+        if remote_types:
+            jobs = jobs.filter(remote_type__in=remote_types)
         
-        if form.cleaned_data.get('experience_level'):
-            jobs = jobs.filter(experience_level__in=form.cleaned_data['experience_level'])
+        # Experience level filter (handle multiple values)
+        experience_levels = request.GET.getlist('experience_level')
+        if experience_levels:
+            jobs = jobs.filter(experience_level__in=experience_levels)
         
-        if form.cleaned_data.get('salary_min'):
-            jobs = jobs.filter(salary_min__gte=form.cleaned_data['salary_min'])
+        # Salary filter
+        salary_min = request.GET.get('salary_min', '').strip()
+        if salary_min:
+            try:
+                salary_min_val = float(salary_min)
+                jobs = jobs.filter(salary_min__gte=salary_min_val)
+            except (ValueError, TypeError):
+                pass
         
-        if form.cleaned_data.get('visa_sponsorship'):
+        # Visa sponsorship filter
+        visa_sponsorship = request.GET.get('visa_sponsorship')
+        if visa_sponsorship:
             jobs = jobs.filter(visa_sponsorship=True)
         
-        if form.cleaned_data.get('skills'):
-            skills = [skill.strip() for skill in form.cleaned_data['skills'].split(',')]
-            for skill in skills:
+        # Skills search
+        skills = request.GET.get('skills', '').strip()
+        if skills:
+            skill_list = [skill.strip() for skill in skills.split(',') if skill.strip()]
+            for skill in skill_list:
                 jobs = jobs.filter(
                     Q(required_skills__icontains=skill) |
                     Q(preferred_skills__icontains=skill)

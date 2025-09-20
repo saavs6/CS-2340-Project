@@ -39,11 +39,13 @@
                         <div class="mb-3">
                             <label class="form-label small">Job Type</label>
                             <div class="form-check-container">
-                                {% for choice in form.job_type %}
+                                {% for value, label in form.job_type.field.choices %}
                                     <div class="form-check form-check-sm">
-                                        {{ choice.tag }}
-                                        <label class="form-check-label small" for="{{ choice.id_for_label }}">
-                                            {{ choice.choice_label }}
+                                        <input type="checkbox" class="form-check-input" 
+                                               name="job_type" value="{{ value }}" id="id_job_type_{{ forloop.counter0 }}"
+                                               {% if value in request.GET.job_type %}checked{% endif %}>
+                                        <label class="form-check-label small" for="id_job_type_{{ forloop.counter0 }}">
+                                            {{ label }}
                                         </label>
                                     </div>
                                 {% endfor %}
@@ -54,11 +56,13 @@
                         <div class="mb-3">
                             <label class="form-label small">Work Type</label>
                             <div class="form-check-container">
-                                {% for choice in form.remote_type %}
+                                {% for value, label in form.remote_type.field.choices %}
                                     <div class="form-check form-check-sm">
-                                        {{ choice.tag }}
-                                        <label class="form-check-label small" for="{{ choice.id_for_label }}">
-                                            {{ choice.choice_label }}
+                                        <input type="checkbox" class="form-check-input" 
+                                               name="remote_type" value="{{ value }}" id="id_remote_type_{{ forloop.counter0 }}"
+                                               {% if value in request.GET.remote_type %}checked{% endif %}>
+                                        <label class="form-check-label small" for="id_remote_type_{{ forloop.counter0 }}">
+                                            {{ label }}
                                         </label>
                                     </div>
                                 {% endfor %}
@@ -83,9 +87,11 @@
                         <!-- Visa Sponsorship -->
                         <div class="mb-3">
                             <div class="form-check">
-                                {{ form.visa_sponsorship }}
-                                <label class="form-check-label small" for="{{ form.visa_sponsorship.id_for_label }}">
-                                    {{ form.visa_sponsorship.label }}
+                                <input type="checkbox" class="form-check-input" name="visa_sponsorship" 
+                                       id="id_visa_sponsorship" value="on"
+                                       {% if request.GET.visa_sponsorship %}checked{% endif %}>
+                                <label class="form-check-label small" for="id_visa_sponsorship">
+                                    Visa sponsorship required
                                 </label>
                             </div>
                         </div>
