@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>{{ action }} Job Posting</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <!-- Basic Information -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.title.label }}</label>
+                                {{ form.title }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.company.label }}</label>
+                                {{ form.company }}
+                            </div>
+                        </div>
+                        
+                        <!-- Job Description -->
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.description.label }}</label>
+                            {{ form.description }}
+                        </div>
+                        
+                        <!-- Job Type and Remote Type -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.job_type.label }}</label>
+                                {{ form.job_type }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.remote_type.label }}</label>
+                                {{ form.remote_type }}
+                            </div>
+                        </div>
+                        
+                        <!-- Salary Range -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.salary_min.label }}</label>
+                                {{ form.salary_min }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.salary_max.label }}</label>
+                                {{ form.salary_max }}
+                            </div>
+                        </div>
+                        
+                        <!-- Location -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">{{ form.city.label }}</label>
+                                {{ form.city }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">{{ form.state.label }}</label>
+                                {{ form.state }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">{{ form.country.label }}</label>
+                                {{ form.country }}
+                            </div>
+                        </div>
+                        
+                        <!-- Skills -->
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.required_skills.label }}</label>
+                            {{ form.required_skills }}
+                            <small class="form-text text-muted">Separate skills with commas</small>
+                        </div>
+                        
+                        <!-- Visa Sponsorship -->
+                        <div class="mb-3 form-check">
+                            {{ form.visa_sponsorship }}
+                            <label class="form-check-label" for="{{ form.visa_sponsorship.id_for_label }}">
+                                {{ form.visa_sponsorship.label }}
+                            </label>
+                        </div>
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'jobs:recruiter_jobs' %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">{{ action }} Job</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
