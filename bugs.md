@@ -1,0 +1,1 @@
+Bug 1: when you sign in and have an account, you can still sign up?
