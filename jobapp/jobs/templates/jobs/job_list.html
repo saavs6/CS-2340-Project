@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-4 col-md-5">
+            <!-- Search Filters -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Search Jobs</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET">
+                        <!-- Keywords -->
+                        <div class="mb-3">
+                            <label class="form-label small">{{ form.keywords.label }}</label>
+                            {{ form.keywords }}
+                        </div>
+                        
+                        <!-- Location -->
+                        <div class="mb-3">
+                            <label class="form-label small">{{ form.location.label }}</label>
+                            {{ form.location }}
+                        </div>
+                        
+                        <!-- Skills -->
+                        <div class="mb-3">
+                            <label class="form-label small">{{ form.skills.label }}</label>
+                            {{ form.skills }}
+                        </div>
+                        
+                        <!-- Salary -->
+                        <div class="mb-3">
+                            <label class="form-label small">{{ form.salary_min.label }}</label>
+                            {{ form.salary_min }}
+                        </div>
+                        
+                        <!-- Job Type -->
+                        <div class="mb-3">
+                            <label class="form-label small">Job Type</label>
+                            <div class="form-check-container">
+                                {% for value, label in form.job_type.field.choices %}
+                                    <div class="form-check form-check-sm">
+                                        <input type="checkbox" class="form-check-input" 
+                                               name="job_type" value="{{ value }}" id="id_job_type_{{ forloop.counter0 }}"
+                                               {% if value in request.GET.job_type %}checked{% endif %}>
+                                        <label class="form-check-label small" for="id_job_type_{{ forloop.counter0 }}">
+                                            {{ label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Remote Type -->
+                        <div class="mb-3">
+                            <label class="form-label small">Work Type</label>
+                            <div class="form-check-container">
+                                {% for value, label in form.remote_type.field.choices %}
+                                    <div class="form-check form-check-sm">
+                                        <input type="checkbox" class="form-check-input" 
+                                               name="remote_type" value="{{ value }}" id="id_remote_type_{{ forloop.counter0 }}"
+                                               {% if value in request.GET.remote_type %}checked{% endif %}>
+                                        <label class="form-check-label small" for="id_remote_type_{{ forloop.counter0 }}">
+                                            {{ label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Experience Level -->
+                        <div class="mb-3">
+                            <label class="form-label small">Experience Level</label>
+                            <div class="form-check-container">
+                                {% for choice in form.experience_level %}
+                                    <div class="form-check form-check-sm">
+                                        {{ choice.tag }}
+                                        <label class="form-check-label small" for="{{ choice.id_for_label }}">
+                                            {{ choice.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Visa Sponsorship -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="visa_sponsorship" 
+                                       id="id_visa_sponsorship" value="on"
+                                       {% if request.GET.visa_sponsorship %}checked{% endif %}>
+                                <label class="form-check-label small" for="id_visa_sponsorship">
+                                    Visa sponsorship required
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Search</button>
+                            <a href="{% url 'jobs:list' %}" class="btn btn-outline-secondary">Clear</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-8 col-md-7">
+            <!-- Job Results -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>Job Listings</h2>
+                <span class="text-muted">{{ jobs_count }} jobs found</span>
+            </div>
+            
+            {% if page_obj %}
+                {% for job in page_obj %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5 class="card-title">
+                                    <a href="{% url 'jobs:detail' job.pk %}" class="text-decoration-none">
+                                        {{ job.title }}
+                                    </a>
+                                </h5>
+                                <h6 class="card-subtitle mb-2 text-muted">{{ job.company }}</h6>
+                                <p class="card-text">{{ job.description|truncatewords:30 }}</p>
+                                
+                                <!-- Job Details -->
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    <span class="badge bg-primary">{{ job.get_job_type_display }}</span>
+                                    <span class="badge bg-info">{{ job.get_remote_type_display }}</span>
+                                    {% if job.visa_sponsorship %}
+                                        <span class="badge bg-success">Visa Sponsorship</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Skills -->
+                                {% if job.get_required_skills_list %}
+                                    <div class="mb-2">
+                                        <small class="text-muted">Skills: </small>
+                                        {% for skill in job.get_required_skills_list|slice:":5" %}
+                                            <span class="badge bg-light text-dark">{{ skill }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 text-end">
+                                <p class="mb-1"><strong>{{ job.get_salary_display }}</strong></p>
+                                <p class="text-muted mb-2">
+                                    <i class="fas fa-map-marker-alt"></i> {{ job.get_location_display }}
+                                </p>
+                                <small class="text-muted">Posted {{ job.created_at|timesince }} ago</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-5">
+                    <h4>No jobs found</h4>
+                    <p class="text-muted">Try adjusting your search criteria</p>
+                </div>
+                {% endfor %}
+                
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                <nav aria-label="Job listings pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if request.GET.title %}&title={{ request.GET.title }}{% endif %}">First</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.title %}&title={{ request.GET.title }}{% endif %}">Previous</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.title %}&title={{ request.GET.title }}{% endif %}">Next</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.title %}&title={{ request.GET.title }}{% endif %}">Last</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <h4>No jobs available</h4>
+                    <p class="text-muted">Check back later for new opportunities</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
