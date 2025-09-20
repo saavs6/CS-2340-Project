@@ -4,6 +4,35 @@ from .models import Job, JobApplication
 class JobForm(forms.ModelForm):
     """Form for creating and editing job postings"""
     
+    def clean_title(self):
+        title = self.cleaned_data.get('title')
+        if title and len(title.strip()) < 3:
+            raise forms.ValidationError("Job title must be at least 3 characters long.")
+        return title.strip() if title else title
+
+    def clean_description(self):
+        description = self.cleaned_data.get('description')
+        if description and len(description.strip()) < 20:
+            raise forms.ValidationError("Job description must be at least 20 characters long.")
+        return description.strip() if description else description
+
+    def clean_requirements(self):
+        requirements = self.cleaned_data.get('requirements')
+        if requirements and len(requirements.strip()) < 10:
+            raise forms.ValidationError("Job requirements must be at least 10 characters long.")
+        return requirements.strip() if requirements else requirements
+
+    def clean(self):
+        cleaned_data = super().clean()
+        salary_min = cleaned_data.get('salary_min')
+        salary_max = cleaned_data.get('salary_max')
+        
+        if salary_min and salary_max:
+            if salary_min >= salary_max:
+                raise forms.ValidationError("Maximum salary must be greater than minimum salary.")
+        
+        return cleaned_data
+    
     class Meta:
         model = Job
         fields = [
@@ -15,25 +44,92 @@ class JobForm(forms.ModelForm):
             'visa_sponsorship', 'benefits', 'application_deadline'
         ]
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Senior Software Engineer'}),
-            'company': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Company Name'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 6}),
-            'requirements': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'title': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'e.g., Senior Software Engineer',
+                'required': True,
+                'maxlength': 200
+            }),
+            'company': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Company Name',
+                'required': True,
+                'maxlength': 200
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 6,
+                'required': True,
+                'placeholder': 'Describe the job role, responsibilities, and what makes this position exciting...'
+            }),
+            'requirements': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 4,
+                'required': True,
+                'placeholder': 'List the qualifications, experience, and requirements for this position...'
+            }),
             'job_type': forms.Select(attrs={'class': 'form-control'}),
             'remote_type': forms.Select(attrs={'class': 'form-control'}),
             'experience_level': forms.Select(attrs={'class': 'form-control'}),
-            'salary_min': forms.NumberInput(attrs={'class': 'form-control', 'step': '1000'}),
-            'salary_max': forms.NumberInput(attrs={'class': 'form-control', 'step': '1000'}),
-            'salary_currency': forms.TextInput(attrs={'class': 'form-control', 'value': 'USD'}),
+            'salary_min': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '1000',
+                'min': '0',
+                'placeholder': '50000'
+            }),
+            'salary_max': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '1000',
+                'min': '0',
+                'placeholder': '100000'
+            }),
+            'salary_currency': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'value': 'USD',
+                'maxlength': 3
+            }),
             'salary_period': forms.Select(attrs={'class': 'form-control'}),
-            'city': forms.TextInput(attrs={'class': 'form-control'}),
-            'state': forms.TextInput(attrs={'class': 'form-control'}),
-            'country': forms.TextInput(attrs={'class': 'form-control', 'value': 'United States'}),
-            'postal_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'required_skills': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Python, Django, React, SQL'}),
-            'preferred_skills': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'benefits': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'application_deadline': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'city': forms.TextInput(attrs={
+                'class': 'form-control',
+                'required': True,
+                'placeholder': 'e.g., San Francisco',
+                'maxlength': 100
+            }),
+            'state': forms.TextInput(attrs={
+                'class': 'form-control',
+                'required': True,
+                'placeholder': 'e.g., California',
+                'maxlength': 100
+            }),
+            'country': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'value': 'United States',
+                'maxlength': 100
+            }),
+            'postal_code': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., 94105',
+                'maxlength': 20
+            }),
+            'required_skills': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 2, 
+                'placeholder': 'Python, Django, React, SQL'
+            }),
+            'preferred_skills': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 2,
+                'placeholder': 'Docker, AWS, Machine Learning'
+            }),
+            'benefits': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3,
+                'placeholder': 'Health insurance, 401k, flexible hours, remote work options...'
+            }),
+            'application_deadline': forms.DateInput(attrs={
+                'class': 'form-control', 
+                'type': 'date'
+            }),
             'visa_sponsorship': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 

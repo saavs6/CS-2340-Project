@@ -105,11 +105,17 @@ def job_create(request):
     if request.method == 'POST':
         form = JobForm(request.POST)
         if form.is_valid():
-            job = form.save(commit=False)
-            job.posted_by = request.user
-            job.save()
-            messages.success(request, 'Job posted successfully!')
-            return redirect('jobs:detail', pk=job.pk)
+            try:
+                job = form.save(commit=False)
+                job.posted_by = request.user
+                job.save()
+                messages.success(request, f'Job "{job.title}" posted successfully!')
+                # Redirect to the jobs list to see the new job
+                return redirect('jobs:list')
+            except Exception as e:
+                messages.error(request, f'Error saving job: {str(e)}')
+        else:
+            messages.error(request, 'Please fix the errors below.')
     else:
         form = JobForm()
     
@@ -131,9 +137,14 @@ def job_edit(request, pk):
     if request.method == 'POST':
         form = JobForm(request.POST, instance=job)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Job updated successfully!')
-            return redirect('jobs:detail', pk=job.pk)
+            try:
+                updated_job = form.save()
+                messages.success(request, f'Job "{updated_job.title}" updated successfully!')
+                return redirect('jobs:detail', pk=updated_job.pk)
+            except Exception as e:
+                messages.error(request, f'Error updating job: {str(e)}')
+        else:
+            messages.error(request, 'Please fix the errors below.')
     else:
         form = JobForm(instance=job)
     
