@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-3 mt-4">
+  <div class="container">
+    <div class="row">
+      <div class="col-12">
+        <h1 class="mb-4">Find Candidates</h1>
+        <p class="lead">Search for talented candidates by skills, location, and experience.</p>
+      </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Search Filters</h5>
+          </div>
+          <div class="card-body">
+            <form method="get" class="row g-3">
+              <div class="col-md-6">
+                <label for="{{ form.keywords.id_for_label }}" class="form-label">{{ form.keywords.label }}</label>
+                {{ form.keywords }}
+                <div class="form-text">{{ form.keywords.help_text }}</div>
+              </div>
+              
+              <div class="col-md-6">
+                <label for="{{ form.skills.id_for_label }}" class="form-label">{{ form.skills.label }}</label>
+                {{ form.skills }}
+                <div class="form-text">{{ form.skills.help_text }}</div>
+              </div>
+              
+              <div class="col-md-6">
+                <label for="{{ form.location.id_for_label }}" class="form-label">{{ form.location.label }}</label>
+                {{ form.location }}
+                <div class="form-text">{{ form.location.help_text }}</div>
+              </div>
+              
+              <div class="col-md-6">
+                <label for="{{ form.remote_preference.id_for_label }}" class="form-label">Remote Work Preference</label>
+                {{ form.remote_preference }}
+              </div>
+              
+              <div class="col-md-4">
+                <label for="{{ form.experience_years.id_for_label }}" class="form-label">Experience Level</label>
+                {{ form.experience_years }}
+              </div>
+              
+              <div class="col-md-4">
+                <label for="{{ form.education_level.id_for_label }}" class="form-label">Education Level</label>
+                {{ form.education_level }}
+              </div>
+              
+              <div class="col-md-4">
+                <div class="form-check mt-4">
+                  {{ form.willing_to_relocate }}
+                  <label class="form-check-label" for="{{ form.willing_to_relocate.id_for_label }}">
+                    Willing to Relocate
+                  </label>
+                </div>
+                
+                <div class="form-check">
+                  {{ form.is_seeking_jobs }}
+                  <label class="form-check-label" for="{{ form.is_seeking_jobs.id_for_label }}">
+                    Currently Seeking Jobs
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-search"></i> Search Candidates
+                </button>
+                <a href="{% url 'recruiters:candidates' %}" class="btn btn-outline-secondary">
+                  <i class="fas fa-times"></i> Clear Filters
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Results -->
+    <div class="row">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5>
+            {% if page_obj %}
+              Found {{ candidates_count }} candidate{{ candidates_count|pluralize }}
+            {% else %}
+              No candidates found
+            {% endif %}
+          </h5>
+        </div>
+
+        {% if page_obj %}
+          <div class="row">
+            {% for candidate in page_obj %}
+              <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                  <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                      <div class="flex-shrink-0">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                          <i class="fas fa-user"></i>
+                        </div>
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="card-title mb-1">
+                          {{ candidate.user.get_full_name|default:candidate.user.username }}
+                        </h6>
+                        {% if candidate.headline %}
+                          <p class="text-muted small mb-1">{{ candidate.headline }}</p>
+                        {% endif %}
+                        {% if candidate.get_short_location %}
+                          <p class="text-muted small mb-0">
+                            <i class="fas fa-map-marker-alt"></i> {{ candidate.get_short_location }}
+                          </p>
+                        {% endif %}
+                      </div>
+                    </div>
+                    
+                    {% if candidate.summary %}
+                      <p class="card-text small text-muted">
+                        {{ candidate.summary|truncatewords:20 }}
+                      </p>
+                    {% endif %}
+                    
+                    {% if candidate.get_skills_list %}
+                      <div class="mb-3">
+                        {% for skill in candidate.get_skills_list|slice:":5" %}
+                          <span class="badge bg-light text-dark me-1 mb-1">{{ skill }}</span>
+                        {% endfor %}
+                        {% if candidate.get_skills_list|length > 5 %}
+                          <span class="text-muted small">+{{ candidate.get_skills_list|length|add:"-5" }} more</span>
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small class="text-muted">
+                        <i class="fas fa-clock"></i> Updated {{ candidate.updated_at|timesince }} ago
+                      </small>
+                      <a href="{% url 'recruiters:candidate_detail' candidate.pk %}" class="btn btn-sm btn-outline-primary">
+                        View Profile
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Pagination -->
+          {% if page_obj.has_other_pages %}
+            <nav aria-label="Candidate search pagination">
+              <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                  <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1">First</a>
+                  </li>
+                  <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">Previous</a>
+                  </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                  <span class="page-link">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                  </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">Next</a>
+                  </li>
+                  <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}">Last</a>
+                  </li>
+                {% endif %}
+              </ul>
+            </nav>
+          {% endif %}
+        {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No candidates found</h5>
+            <p class="text-muted">Try adjusting your search criteria or clear the filters to see all available candidates.</p>
+            <a href="{% url 'recruiters:candidates' %}" class="btn btn-primary">View All Candidates</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

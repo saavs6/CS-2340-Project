@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-3 mt-4">
+  <div class="container">
+    <div class="row">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1 class="mb-0">{{ candidate.user.get_full_name|default:candidate.user.username }}</h1>
+          <a href="{% url 'recruiters:candidates' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Search
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Main Profile Content -->
+      <div class="col-lg-8">
+        <!-- Basic Info Card -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3 text-center">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 100px; height: 100px;">
+                  <i class="fas fa-user fa-2x"></i>
+                </div>
+              </div>
+              <div class="col-md-9">
+                <h4 class="card-title">{{ candidate.user.get_full_name|default:candidate.user.username }}</h4>
+                {% if candidate.headline %}
+                  <h6 class="text-muted mb-3">{{ candidate.headline }}</h6>
+                {% endif %}
+                
+                <div class="row">
+                  {% if candidate.get_short_location %}
+                    <div class="col-sm-6 mb-2">
+                      <i class="fas fa-map-marker-alt text-muted"></i>
+                      <span class="ms-2">{{ candidate.get_full_location }}</span>
+                    </div>
+                  {% endif %}
+                  
+                  {% if candidate.phone %}
+                    <div class="col-sm-6 mb-2">
+                      <i class="fas fa-phone text-muted"></i>
+                      <span class="ms-2">{{ candidate.phone }}</span>
+                    </div>
+                  {% endif %}
+                  
+                  {% if candidate.user.email %}
+                    <div class="col-sm-6 mb-2">
+                      <i class="fas fa-envelope text-muted"></i>
+                      <span class="ms-2">{{ candidate.user.email }}</span>
+                    </div>
+                  {% endif %}
+                  
+                  <div class="col-sm-6 mb-2">
+                    <i class="fas fa-briefcase text-muted"></i>
+                    <span class="ms-2">{{ candidate.get_remote_work_preference_display }}</span>
+                  </div>
+                  
+                  {% if candidate.willing_to_relocate %}
+                    <div class="col-sm-6 mb-2">
+                      <i class="fas fa-plane text-muted"></i>
+                      <span class="ms-2">Willing to relocate</span>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Professional Summary -->
+        {% if candidate.summary %}
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Professional Summary</h5>
+            </div>
+            <div class="card-body">
+              <p class="card-text">{{ candidate.summary|linebreaks }}</p>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Skills -->
+        {% if candidate.get_skills_list %}
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Skills</h5>
+            </div>
+            <div class="card-body">
+              {% for skill in candidate.get_skills_list %}
+                <span class="badge bg-primary me-2 mb-2">{{ skill }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Work Experience -->
+        {% if candidate.work_experience.all %}
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Work Experience</h5>
+            </div>
+            <div class="card-body">
+              {% for experience in candidate.work_experience.all %}
+                <div class="mb-4 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                      <h6 class="mb-1">{{ experience.position }}</h6>
+                      <p class="text-muted mb-1">{{ experience.company }}</p>
+                      {% if experience.location %}
+                        <p class="text-muted small mb-1">
+                          <i class="fas fa-map-marker-alt"></i> {{ experience.location }}
+                        </p>
+                      {% endif %}
+                    </div>
+                    <div class="text-end">
+                      <small class="text-muted">
+                        {{ experience.start_date|date:"M Y" }} - 
+                        {% if experience.is_current %}
+                          Present
+                        {% else %}
+                          {{ experience.end_date|date:"M Y" }}
+                        {% endif %}
+                      </small>
+                    </div>
+                  </div>
+                  <p class="mt-2">{{ experience.description|linebreaks }}</p>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Education -->
+        {% if candidate.education.all %}
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Education</h5>
+            </div>
+            <div class="card-body">
+              {% for education in candidate.education.all %}
+                <div class="mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                      <h6 class="mb-1">{{ education.degree }} in {{ education.field_of_study }}</h6>
+                      <p class="text-muted mb-1">{{ education.institution }}</p>
+                      {% if education.gpa %}
+                        <p class="text-muted small mb-1">GPA: {{ education.gpa }}</p>
+                      {% endif %}
+                    </div>
+                    <div class="text-end">
+                      <small class="text-muted">
+                        {{ education.start_date|date:"M Y" }} - 
+                        {% if education.is_current %}
+                          Present
+                        {% else %}
+                          {{ education.end_date|date:"M Y" }}
+                        {% endif %}
+                      </small>
+                    </div>
+                  </div>
+                  {% if education.description %}
+                    <p class="mt-2 small">{{ education.description|linebreaks }}</p>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Professional Links -->
+        {% if candidate.linkedin_url or candidate.github_url or candidate.portfolio_url or candidate.other_url %}
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Professional Links</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                {% if candidate.linkedin_url %}
+                  <div class="col-md-6 mb-2">
+                    <a href="{{ candidate.linkedin_url }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                      <i class="fab fa-linkedin"></i> LinkedIn
+                    </a>
+                  </div>
+                {% endif %}
+                
+                {% if candidate.github_url %}
+                  <div class="col-md-6 mb-2">
+                    <a href="{{ candidate.github_url }}" target="_blank" class="btn btn-outline-dark btn-sm">
+                      <i class="fab fa-github"></i> GitHub
+                    </a>
+                  </div>
+                {% endif %}
+                
+                {% if candidate.portfolio_url %}
+                  <div class="col-md-6 mb-2">
+                    <a href="{{ candidate.portfolio_url }}" target="_blank" class="btn btn-outline-info btn-sm">
+                      <i class="fas fa-globe"></i> Portfolio
+                    </a>
+                  </div>
+                {% endif %}
+                
+                {% if candidate.other_url %}
+                  <div class="col-md-6 mb-2">
+                    <a href="{{ candidate.other_url }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                      <i class="fas fa-link"></i> Other
+                    </a>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-lg-4">
+        <!-- Contact Actions -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Contact Candidate</h5>
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">Reach out to this candidate about opportunities.</p>
+            <div class="d-grid gap-2">
+              <a href="mailto:{{ candidate.user.email }}" class="btn btn-primary">
+                <i class="fas fa-envelope"></i> Send Email
+              </a>
+              {% if candidate.phone %}
+                <a href="tel:{{ candidate.phone }}" class="btn btn-outline-primary">
+                  <i class="fas fa-phone"></i> Call
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile Status -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Profile Status</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span>Public Profile</span>
+              <span class="badge bg-{% if candidate.is_public %}success{% else %}secondary{% endif %}">
+                {% if candidate.is_public %}Visible{% else %}Hidden{% endif %}
+              </span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span>Seeking Jobs</span>
+              <span class="badge bg-{% if candidate.is_seeking_jobs %}success{% else %}secondary{% endif %}">
+                {% if candidate.is_seeking_jobs %}Yes{% else %}No{% endif %}
+              </span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span>Last Updated</span>
+              <small class="text-muted">{{ candidate.updated_at|timesince }} ago</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Quick Stats</h5>
+          </div>
+          <div class="card-body">
+            <div class="row text-center">
+              <div class="col-6 mb-3">
+                <div class="h4 text-primary">{{ candidate.work_experience.count }}</div>
+                <small class="text-muted">Experience{{ candidate.work_experience.count|pluralize }}</small>
+              </div>
+              <div class="col-6 mb-3">
+                <div class="h4 text-success">{{ candidate.education.count }}</div>
+                <small class="text-muted">Education{{ candidate.education.count|pluralize }}</small>
+              </div>
+              <div class="col-6">
+                <div class="h4 text-info">{{ candidate.get_skills_list|length }}</div>
+                <small class="text-muted">Skills</small>
+              </div>
+              <div class="col-6">
+                <div class="h4 text-warning">
+                  {% if candidate.linkedin_url or candidate.github_url or candidate.portfolio_url or candidate.other_url %}
+                    {{ candidate.linkedin_url|yesno:"1,0"|add:candidate.github_url|yesno:"1,0"|add:candidate.portfolio_url|yesno:"1,0"|add:candidate.other_url|yesno:"1,0" }}
+                  {% else %}
+                    0
+                  {% endif %}
+                </div>
+                <small class="text-muted">Links</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
