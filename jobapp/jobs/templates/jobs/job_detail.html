@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title">{{ job.title }}</h1>
+                    <h4 class="text-muted mb-3">{{ job.company }}</h4>
+                    
+                    <!-- Job Details -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <p><strong>Job Type:</strong> {{ job.get_job_type_display }}</p>
+                            <p><strong>Work Type:</strong> {{ job.get_remote_type_display }}</p>
+                            <p><strong>Location:</strong> {{ job.get_location_display }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Salary:</strong> {{ job.get_salary_display }}</p>
+                            <p><strong>Visa Sponsorship:</strong> 
+                                {% if job.visa_sponsorship %}
+                                    <span class="badge bg-success">Available</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Not Available</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Posted:</strong> {{ job.created_at|date:"F d, Y" }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Job Description -->
+                    <h5>Job Description</h5>
+                    <div class="mb-4">
+                        {{ job.description|linebreaks }}
+                    </div>
+                    
+                    <!-- Required Skills -->
+                    {% if job.get_required_skills_list %}
+                    <h5>Required Skills</h5>
+                    <div class="mb-4">
+                        {% for skill in job.get_required_skills_list %}
+                            <span class="badge bg-primary me-2 mb-2">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Actions</h5>
+                    
+                    {% if user.is_authenticated %}
+                        {% if template_data.user_type == 'applicant' %}
+                            <!-- Apply button for applicants -->
+                            <a href="#" class="btn btn-primary w-100 mb-2">Apply Now</a>
+                            <a href="#" class="btn btn-outline-secondary w-100 mb-2">Save Job</a>
+                        {% elif template_data.user_type == 'recruiter' and job.posted_by == user %}
+                            <!-- Edit button for job owner -->
+                            <a href="{% url 'jobs:edit' job.pk %}" class="btn btn-warning w-100 mb-2">Edit Job</a>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted">Please log in to apply for this job.</p>
+                        <a href="{% url 'accounts.login' %}" class="btn btn-primary w-100 mb-2">Login</a>
+                        <a href="{% url 'accounts.signup' %}" class="btn btn-outline-primary w-100">Sign Up</a>
+                    {% endif %}
+                    
+                    <hr>
+                    <a href="{% url 'jobs:list' %}" class="btn btn-outline-secondary w-100">Back to Jobs</a>
+                </div>
+            </div>
+            
+            <!-- Company Info -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">About {{ job.company }}</h5>
+                    <p class="text-muted">More company information coming soon...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

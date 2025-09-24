@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>My Job Postings</h2>
+        <a href="{% url 'jobs:create' %}" class="btn btn-primary">Post New Job</a>
+    </div>
+    
+    {% if jobs %}
+        <div class="row">
+            {% for job in jobs %}
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ job.title }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ job.company }}</h6>
+                        <p class="card-text">{{ job.description|truncatewords:20 }}</p>
+                        
+                        <!-- Job Status -->
+                        <div class="mb-2">
+                            {% if job.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                            <span class="badge bg-info">{{ job.get_job_type_display }}</span>
+                            <span class="badge bg-primary">{{ job.get_remote_type_display }}</span>
+                        </div>
+                        
+                        <!-- Job Stats -->
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                Posted {{ job.created_at|timesince }} ago • 
+                                {{ job.get_location_display }}
+                            </small>
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div class="btn-group w-100" role="group">
+                            <a href="{% url 'jobs:detail' job.pk %}" class="btn btn-outline-primary">View</a>
+                            <a href="{% url 'jobs:edit' job.pk %}" class="btn btn-outline-warning">Edit</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <h4>No job postings yet</h4>
+            <p class="text-muted">Create your first job posting to start finding candidates.</p>
+            <a href="{% url 'jobs:create' %}" class="btn btn-primary">Post Your First Job</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
