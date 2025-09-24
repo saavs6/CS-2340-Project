@@ -241,3 +241,42 @@ def my_applications(request):
     }
     
     return render(request, 'jobs/my_applications.html', context)
+
+@applicant_required
+def application_detail(request, pk):
+    """View a specific application with status timeline"""
+    application = get_object_or_404(JobApplication, pk=pk, applicant=request.user)
+    job = application.job
+    
+    # Define canonical steps for UI
+    steps = ['applied', 'review', 'interview', 'offer', 'closed']
+    # Map terminal statuses to 'closed'
+    status_normalized = application.status
+    if application.status in ['accepted', 'rejected', 'withdrawn']:
+        status_normalized = 'closed'
+    current_index = steps.index(status_normalized) if status_normalized in steps else 0
+    
+    context = {
+        'template_data': {
+            'title': f'Application - {job.title}',
+            'user_type': 'applicant'
+        },
+        'application': application,
+        'job': job,
+        'steps': steps,
+        'current_index': current_index
+    }
+    return render(request, 'jobs/application_detail.html', context)
+
+@applicant_required
+def application_withdraw(request, pk):
+    """Allow applicant to withdraw their application"""
+    application = get_object_or_404(JobApplication, pk=pk, applicant=request.user)
+    if request.method == 'POST':
+        if application.status not in ['accepted', 'rejected', 'withdrawn']:
+            application.status = 'withdrawn'
+            application.save()
+            messages.success(request, 'Application withdrawn.')
+        else:
+            messages.warning(request, 'This application is already closed.')
+    return redirect('jobs:application_detail', pk=application.pk)

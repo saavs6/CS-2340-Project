@@ -6,12 +6,14 @@
   {% if applications %}
     <div class="list-group">
       {% for app in applications %}
-        <a href="{% url 'jobs:detail' app.job.pk %}" class="list-group-item list-group-item-action">
+        <a href="{% url 'jobs:application_detail' app.pk %}" class="list-group-item list-group-item-action">
           <div class="d-flex w-100 justify-content-between">
             <h5 class="mb-1">{{ app.job.title }} at {{ app.job.company }}</h5>
             <small class="text-muted">{{ app.applied_at|date:"M d, Y" }}</small>
           </div>
-          <p class="mb-1 text-muted">Status: {{ app.get_status_display }}</p>
+          <p class="mb-1">Status: <span class="badge 
+            {% if app.status == 'applied' %}bg-secondary{% elif app.status == 'review' %}bg-info text-dark{% elif app.status == 'interview' %}bg-primary{% elif app.status == 'offer' %}bg-success{% elif app.status in 'accepted rejected withdrawn' %}bg-dark{% else %}bg-secondary{% endif %}">
+            {{ app.get_status_display }}</span></p>
           {% if app.cover_letter %}
             <small class="text-muted">Note: {{ app.cover_letter|truncatechars:140 }}</small>
           {% endif %}

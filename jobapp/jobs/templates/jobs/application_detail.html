@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card mb-3">
+        <div class="card-body">
+          <h4 class="card-title">{{ job.title }} at {{ job.company }}</h4>
+          <p class="text-muted mb-1">Applied on {{ application.applied_at|date:"F d, Y" }}</p>
+          <p class="text-muted">Current Status: <span class="badge bg-primary">{{ application.get_status_display }}</span></p>
+          {% if application.cover_letter %}
+            <hr />
+            <h6>Your Note</h6>
+            <p>{{ application.cover_letter|linebreaks }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Application Progress</h5>
+          <div class="d-flex align-items-center flex-wrap">
+            {% for step in steps %}
+              {% with idx=forloop.counter0 %}
+              <div class="d-flex align-items-center mb-2">
+                <div class="rounded-circle text-white d-flex align-items-center justify-content-center"
+                     style="width:32px;height:32px;background-color:{% if idx <= current_index %}#0d6efd{% else %}#ced4da{% endif %};">
+                  {{ forloop.counter }}
+                </div>
+                <span class="ms-2 me-3 text-capitalize">{{ step }}</span>
+                {% if not forloop.last %}
+                  <div style="width:40px;height:2px;background-color:{% if idx < current_index %}#0d6efd{% else %}#ced4da{% endif %};"></div>
+                {% endif %}
+              </div>
+              {% endwith %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Actions</h5>
+          <a href="{% url 'jobs:detail' job.pk %}" class="btn btn-outline-secondary w-100 mb-2">View Job</a>
+          {% if application.status not in 'accepted rejected withdrawn' %}
+          <form method="post" action="{% url 'jobs:application_withdraw' application.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger w-100">Withdraw Application</button>
+          </form>
+          {% else %}
+            <button class="btn btn-outline-secondary w-100" disabled>Application Closed</button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+

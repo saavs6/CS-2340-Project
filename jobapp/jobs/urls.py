@@ -9,6 +9,8 @@ urlpatterns = [
     path('<int:pk>/', views.job_detail, name='detail'),
     path('<int:pk>/apply/', views.job_apply, name='apply'),
     path('applications/', views.my_applications, name='my_applications'),
+    path('applications/<int:pk>/', views.application_detail, name='application_detail'),
+    path('applications/<int:pk>/withdraw/', views.application_withdraw, name='application_withdraw'),
     
     # Recruiter views
     path('post/', views.job_create, name='create'),
