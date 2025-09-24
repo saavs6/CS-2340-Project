@@ -65,6 +65,13 @@
       {% block content %}
       {% endblock content %}
     </div>
+    {% if messages %}
+    <div class="container mt-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
     <!-- Footer -->
      <section class="p-3 ms-footer d-none d-md-block">
       <div class="container">

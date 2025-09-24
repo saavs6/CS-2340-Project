@@ -7,6 +7,8 @@ urlpatterns = [
     # Public job views (for job seekers)
     path('', views.job_list, name='list'),
     path('<int:pk>/', views.job_detail, name='detail'),
+    path('<int:pk>/apply/', views.job_apply, name='apply'),
+    path('applications/', views.my_applications, name='my_applications'),
     
     # Recruiter views
     path('post/', views.job_create, name='create'),
