@@ -6,7 +6,7 @@
         <h2>My Job Postings</h2>
         <a href="{% url 'jobs:create' %}" class="btn btn-primary">Post New Job</a>
     </div>
-    
+
     {% if jobs %}
         <div class="row">
             {% for job in jobs %}
@@ -16,7 +16,7 @@
                         <h5 class="card-title">{{ job.title }}</h5>
                         <h6 class="card-subtitle mb-2 text-muted">{{ job.company }}</h6>
                         <p class="card-text">{{ job.description|truncatewords:20 }}</p>
-                        
+
                         <!-- Job Status -->
                         <div class="mb-2">
                             {% if job.is_active %}
@@ -27,19 +27,35 @@
                             <span class="badge bg-info">{{ job.get_job_type_display }}</span>
                             <span class="badge bg-primary">{{ job.get_remote_type_display }}</span>
                         </div>
-                        
+
                         <!-- Job Stats -->
                         <div class="mb-3">
                             <small class="text-muted">
-                                Posted {{ job.created_at|timesince }} ago • 
+                                Posted {{ job.created_at|timesince }} ago •
                                 {{ job.get_location_display }}
                             </small>
+                            <br>
+                            <small class="text-muted">
+                                <i class="fas fa-users"></i> {{ job.applications.count }} application{{ job.applications.count|pluralize }}
+                            </small>
                         </div>
-                        
+
                         <!-- Actions -->
-                        <div class="btn-group w-100" role="group">
-                            <a href="{% url 'jobs:detail' job.pk %}" class="btn btn-outline-primary">View</a>
-                            <a href="{% url 'jobs:edit' job.pk %}" class="btn btn-outline-warning">Edit</a>
+                        <div class="d-grid gap-2">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'jobs:detail' job.pk %}" class="btn btn-outline-primary">View</a>
+                                <a href="{% url 'jobs:edit' job.pk %}" class="btn btn-outline-warning">Edit</a>
+                            </div>
+                            {% if job.applications.count > 0 %}
+                                <div class="btn-group w-100" role="group">
+                                    <a href="{% url 'recruiters:job_applications' job.pk %}" class="btn btn-outline-info">
+                                        <i class="fas fa-list"></i> Applications ({{ job.applications.count }})
+                                    </a>
+                                    <a href="{% url 'recruiters:kanban_board' job.pk %}" class="btn btn-outline-success">
+                                        <i class="fas fa-columns"></i> Kanban
+                                    </a>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

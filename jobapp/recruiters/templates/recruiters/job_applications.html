@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>{{ template_data.title }}</h2>
+                    <p class="text-muted">{{ job.company }} - {{ job.title }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'recruiters:kanban_board' job.id %}" class="btn btn-primary">
+                        <i class="fas fa-columns"></i> Kanban View
+                    </a>
+                    <a href="{% url 'jobs:recruiter_jobs' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Jobs
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applications Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-2">
+                            <h4 class="text-primary">{{ kanban_columns.applied.count }}</h4>
+                            <p class="text-muted mb-0">Applied</p>
+                        </div>
+                        <div class="col-md-2">
+                            <h4 class="text-warning">{{ kanban_columns.review.count }}</h4>
+                            <p class="text-muted mb-0">Under Review</p>
+                        </div>
+                        <div class="col-md-2">
+                            <h4 class="text-info">{{ kanban_columns.interview.count }}</h4>
+                            <p class="text-muted mb-0">Interview</p>
+                        </div>
+                        <div class="col-md-2">
+                            <h4 class="text-success">{{ kanban_columns.offer.count }}</h4>
+                            <p class="text-muted mb-0">Offer</p>
+                        </div>
+                        <div class="col-md-2">
+                            <h4 class="text-secondary">{{ kanban_columns.closed.count }}</h4>
+                            <p class="text-muted mb-0">Closed</p>
+                        </div>
+                        <div class="col-md-2">
+                            <h4 class="text-dark">{{ applications.count }}</h4>
+                            <p class="text-muted mb-0">Total</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applications List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">All Applications</h5>
+                </div>
+                <div class="card-body">
+                    {% if applications %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Applicant</th>
+                                        <th>Status</th>
+                                        <th>Applied Date</th>
+                                        <th>Cover Letter</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for application in applications %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar-circle me-3">
+                                                        {{ application.applicant.get_full_name|default:application.applicant.username|first|upper }}
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="mb-0">
+                                                            <a href="{% url 'recruiters:application_detail' application.id %}" class="text-decoration-none">
+                                                                {{ application.applicant.get_full_name|default:application.applicant.username }}
+                                                            </a>
+                                                        </h6>
+                                                        <small class="text-muted">{{ application.applicant.email }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge
+                                                    {% if application.kanban_status == 'applied' %}bg-primary
+                                                    {% elif application.kanban_status == 'review' %}bg-warning
+                                                    {% elif application.kanban_status == 'interview' %}bg-info
+                                                    {% elif application.kanban_status == 'offer' %}bg-success
+                                                    {% elif application.kanban_status == 'closed' %}bg-secondary
+                                                    {% endif %}">
+                                                    {{ application.get_kanban_display_status }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small>{{ application.applied_at|date:"M d, Y" }}</small>
+                                                <br>
+                                                <small class="text-muted">{{ application.applied_at|timesince }} ago</small>
+                                            </td>
+                                            <td>
+                                                {% if application.cover_letter %}
+                                                    <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ application.cover_letter }}">
+                                                        {{ application.cover_letter|truncatewords:10 }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted">No cover letter</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a href="{% url 'recruiters:application_detail' application.id %}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </a>
+                                                    <a href="{% url 'recruiters:candidate_detail' application.applicant.applicant_profile.id %}" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-user"></i> Profile
+                                                    </a>
+                                                    <div class="btn-group" role="group">
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                            <i class="fas fa-ellipsis-v"></i>
+                                                        </button>
+                                                        <ul class="dropdown-menu">
+                                                            <li><h6 class="dropdown-header">Change Status</h6></li>
+                                                            <li><a class="dropdown-item" href="#" onclick="updateStatus({{ application.id }}, 'applied')">Applied</a></li>
+                                                            <li><a class="dropdown-item" href="#" onclick="updateStatus({{ application.id }}, 'review')">Under Review</a></li>
+                                                            <li><a class="dropdown-item" href="#" onclick="updateStatus({{ application.id }}, 'interview')">Interview</a></li>
+                                                            <li><a class="dropdown-item" href="#" onclick="updateStatus({{ application.id }}, 'offer')">Offer</a></li>
+                                                            <li><a class="dropdown-item" href="#" onclick="updateStatus({{ application.id }}, 'closed')">Closed</a></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No applications yet</h5>
+                            <p class="text-muted">Applications for this job will appear here when candidates apply.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="loading-spinner" class="position-fixed top-50 start-50 translate-middle" style="display: none; z-index: 9999;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+<!-- Toast for notifications -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="status-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="fas fa-check-circle text-success me-2"></i>
+            <strong class="me-auto">Status Updated</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            Application status has been updated successfully.
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #007bff;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.btn-group .btn {
+    border-radius: 0.375rem;
+}
+
+.btn-group .btn:not(:last-child) {
+    margin-right: 0.25rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize toast
+    const toastElement = document.getElementById('status-toast');
+    const toast = new bootstrap.Toast(toastElement);
+
+    // Make updateStatus function global
+    window.updateStatus = function(applicationId, newStatus) {
+        // Show loading spinner
+        document.getElementById('loading-spinner').style.display = 'block';
+
+        // Update status via AJAX
+        fetch('{% url "recruiters:update_application_status" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                application_id: applicationId,
+                new_status: newStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload the page to show updated status
+                location.reload();
+            } else {
+                console.error('Failed to update status:', data.error);
+                alert('Failed to update application status. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating status:', error);
+            alert('An error occurred while updating the application status.');
+        })
+        .finally(() => {
+            // Hide loading spinner
+            document.getElementById('loading-spinner').style.display = 'none';
+        });
+    };
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

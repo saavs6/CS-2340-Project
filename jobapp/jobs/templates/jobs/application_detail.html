@@ -8,7 +8,17 @@
         <div class="card-body">
           <h4 class="card-title">{{ job.title }} at {{ job.company }}</h4>
           <p class="text-muted mb-1">Applied on {{ application.applied_at|date:"F d, Y" }}</p>
-          <p class="text-muted">Current Status: <span class="badge bg-primary">{{ application.get_status_display }}</span></p>
+          <p class="text-muted">Current Status:
+            <span class="badge
+              {% if application.kanban_status == 'applied' %}bg-primary
+              {% elif application.kanban_status == 'review' %}bg-warning
+              {% elif application.kanban_status == 'interview' %}bg-info
+              {% elif application.kanban_status == 'offer' %}bg-success
+              {% elif application.kanban_status == 'closed' %}bg-secondary
+              {% endif %}">
+              {{ application.get_kanban_display_status }}
+            </span>
+          </p>
           {% if application.cover_letter %}
             <hr />
             <h6>Your Note</h6>
