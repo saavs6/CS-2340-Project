@@ -111,3 +111,4 @@ class CandidateSearchForm(forms.Form):
             skill_list = [skill.strip() for skill in skills.split(',') if skill.strip()]
             return ', '.join(skill_list)
         return skills
+
