@@ -3,16 +3,21 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.conf import settings
 from accounts.decorators import recruiter_required, applicant_required
 from .models import Job, JobApplication
 from .forms import JobForm, JobSearchForm, JobApplicationForm
+import json
 
 # Job Listing and Search Views
 def job_list(request):
     """Public job listing with search functionality"""
     form = JobSearchForm(request.GET or None)
     jobs = Job.objects.filter(is_active=True)
-    
+
     # Process search filters from GET parameters directly
     # This handles cases where form validation might fail due to format issues
     if request.GET:
@@ -25,7 +30,7 @@ def job_list(request):
                 Q(description__icontains=keywords) |
                 Q(required_skills__icontains=keywords)
             )
-        
+
         # Location search
         location = request.GET.get('location', '').strip()
         if location:
@@ -34,22 +39,22 @@ def job_list(request):
                 Q(state__icontains=location) |
                 Q(country__icontains=location)
             )
-        
+
         # Job type filter (handle multiple values)
         job_types = request.GET.getlist('job_type')
         if job_types:
             jobs = jobs.filter(job_type__in=job_types)
-        
+
         # Remote type filter (handle multiple values)
         remote_types = request.GET.getlist('remote_type')
         if remote_types:
             jobs = jobs.filter(remote_type__in=remote_types)
-        
+
         # Experience level filter (handle multiple values)
         experience_levels = request.GET.getlist('experience_level')
         if experience_levels:
             jobs = jobs.filter(experience_level__in=experience_levels)
-        
+
         # Salary filter
         salary_min = request.GET.get('salary_min', '').strip()
         if salary_min:
@@ -58,12 +63,12 @@ def job_list(request):
                 jobs = jobs.filter(salary_min__gte=salary_min_val)
             except (ValueError, TypeError):
                 pass
-        
+
         # Visa sponsorship filter
         visa_sponsorship = request.GET.get('visa_sponsorship')
         if visa_sponsorship:
             jobs = jobs.filter(visa_sponsorship=True)
-        
+
         # Skills search
         skills = request.GET.get('skills', '').strip()
         if skills:
@@ -73,12 +78,12 @@ def job_list(request):
                     Q(required_skills__icontains=skill) |
                     Q(preferred_skills__icontains=skill)
                 )
-    
+
     # Pagination
     paginator = Paginator(jobs, 10)  # Show 10 jobs per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     context = {
         'template_data': {
             'title': 'Find Jobs',
@@ -88,13 +93,13 @@ def job_list(request):
         'page_obj': page_obj,
         'jobs_count': jobs.count()
     }
-    
+
     return render(request, 'jobs/job_list.html', context)
 
 def job_detail(request, pk):
     """Job detail view"""
     job = get_object_or_404(Job, pk=pk, is_active=True)
-    
+
     # Check if user has already applied (for applicants)
     has_applied = False
     if request.user.is_authenticated:
@@ -105,7 +110,7 @@ def job_detail(request, pk):
                 ).exists()
         except:
             pass
-    
+
     context = {
         'template_data': {
             'title': job.title,
@@ -114,7 +119,7 @@ def job_detail(request, pk):
         'job': job,
         'has_applied': has_applied
     }
-    
+
     return render(request, 'jobs/job_detail.html', context)
 
 # Recruiter Views
@@ -137,7 +142,7 @@ def job_create(request):
             messages.error(request, 'Please fix the errors below.')
     else:
         form = JobForm()
-    
+
     context = {
         'template_data': {
             'title': 'Post New Job',
@@ -145,14 +150,14 @@ def job_create(request):
         },
         'form': form
     }
-    
+
     return render(request, 'jobs/job_form.html', context)
 
 @recruiter_required
 def job_edit(request, pk):
     """Edit existing job posting"""
     job = get_object_or_404(Job, pk=pk, posted_by=request.user)
-    
+
     if request.method == 'POST':
         form = JobForm(request.POST, instance=job)
         if form.is_valid():
@@ -166,7 +171,7 @@ def job_edit(request, pk):
             messages.error(request, 'Please fix the errors below.')
     else:
         form = JobForm(instance=job)
-    
+
     context = {
         'template_data': {
             'title': 'Edit Job',
@@ -175,14 +180,14 @@ def job_edit(request, pk):
         'form': form,
         'job': job
     }
-    
+
     return render(request, 'jobs/job_form.html', context)
 
 @recruiter_required
 def recruiter_jobs(request):
     """List recruiter's job postings"""
     jobs = Job.objects.filter(posted_by=request.user).order_by('-created_at')
-    
+
     context = {
         'template_data': {
             'title': 'My Job Postings',
@@ -190,7 +195,7 @@ def recruiter_jobs(request):
         },
         'jobs': jobs
     }
-    
+
     return render(request, 'jobs/recruiter_jobs.html', context)
 
 # Applicant Views
@@ -198,12 +203,12 @@ def recruiter_jobs(request):
 def job_apply(request, pk):
     """Apply to a job"""
     job = get_object_or_404(Job, pk=pk, is_active=True)
-    
+
     # Check if already applied
     if JobApplication.objects.filter(job=job, applicant=request.user).exists():
         messages.warning(request, 'You have already applied to this job.')
         return redirect('jobs:detail', pk=job.pk)
-    
+
     if request.method == 'POST':
         form = JobApplicationForm(request.POST)
         if form.is_valid():
@@ -215,7 +220,7 @@ def job_apply(request, pk):
             return redirect('jobs:detail', pk=job.pk)
     else:
         form = JobApplicationForm()
-    
+
     context = {
         'template_data': {
             'title': f'Apply to {job.title}',
@@ -224,14 +229,14 @@ def job_apply(request, pk):
         'form': form,
         'job': job
     }
-    
+
     return render(request, 'jobs/job_apply.html', context)
 
 @applicant_required
 def my_applications(request):
     """View applicant's job applications"""
     applications = JobApplication.objects.filter(applicant=request.user).order_by('-applied_at')
-    
+
     context = {
         'template_data': {
             'title': 'My Applications',
@@ -239,7 +244,7 @@ def my_applications(request):
         },
         'applications': applications
     }
-    
+
     return render(request, 'jobs/my_applications.html', context)
 
 @applicant_required
@@ -247,7 +252,7 @@ def application_detail(request, pk):
     """View a specific application with status timeline"""
     application = get_object_or_404(JobApplication, pk=pk, applicant=request.user)
     job = application.job
-    
+
     # Define canonical steps for UI
     steps = ['applied', 'review', 'interview', 'offer', 'closed']
     # Map terminal statuses to 'closed'
@@ -255,7 +260,7 @@ def application_detail(request, pk):
     if application.status in ['accepted', 'rejected', 'withdrawn']:
         status_normalized = 'closed'
     current_index = steps.index(status_normalized) if status_normalized in steps else 0
-    
+
     context = {
         'template_data': {
             'title': f'Application - {job.title}',
@@ -280,3 +285,181 @@ def application_withdraw(request, pk):
         else:
             messages.warning(request, 'This application is already closed.')
     return redirect('jobs:application_detail', pk=application.pk)
+
+# Map Views
+def job_map(request):
+    """Display map with all job locations for job seekers"""
+    jobs = Job.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
+
+    # Convert jobs to map markers
+    job_markers = []
+    for job in jobs:
+        job_markers.append({
+            'id': job.id,
+            'title': job.title,
+            'company': job.company,
+            'location': job.get_location_display(),
+            'lat': float(job.latitude),
+            'lng': float(job.longitude),
+            'url': job.get_absolute_url(),
+            'salary': job.get_salary_display(),
+            'job_type': job.get_job_type_display(),
+            'remote_type': job.get_remote_type_display(),
+        })
+
+    context = {
+        'template_data': {
+            'title': 'Job Map',
+            'user_type': getattr(request.user.userprofile, 'user_type', None) if request.user.is_authenticated else None
+        },
+        'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
+        'job_markers': job_markers,
+        'jobs_count': jobs.count()
+    }
+
+    return render(request, 'jobs/job_map.html', context)
+
+@recruiter_required
+def recruiter_job_map(request):
+    """Display map with recruiter's job locations"""
+    jobs = Job.objects.filter(
+        posted_by=request.user,
+        latitude__isnull=False,
+        longitude__isnull=False
+    )
+
+    # Convert jobs to map markers
+    job_markers = []
+    for job in jobs:
+        job_markers.append({
+            'id': job.id,
+            'title': job.title,
+            'company': job.company,
+            'location': job.get_location_display(),
+            'lat': float(job.latitude),
+            'lng': float(job.longitude),
+            'url': job.get_absolute_url(),
+            'salary': job.get_salary_display(),
+            'job_type': job.get_job_type_display(),
+            'remote_type': job.get_remote_type_display(),
+            'applications_count': job.applications.count(),
+        })
+
+    context = {
+        'template_data': {
+            'title': 'My Job Locations',
+            'user_type': 'recruiter'
+        },
+        'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
+        'job_markers': job_markers,
+        'jobs_count': jobs.count()
+    }
+
+    return render(request, 'jobs/recruiter_job_map.html', context)
+
+def jobs_nearby_api(request):
+    """API endpoint to get jobs near a specific location"""
+    lat = request.GET.get('lat')
+    lng = request.GET.get('lng')
+    radius = request.GET.get('radius', 50)  # Default 50km radius
+
+    if not lat or not lng:
+        return JsonResponse({'error': 'Latitude and longitude are required'}, status=400)
+
+    try:
+        lat = float(lat)
+        lng = float(lng)
+        radius = float(radius)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid coordinates or radius'}, status=400)
+
+    # Simple distance calculation (not perfect but works for small distances)
+    # In production, you'd want to use PostGIS or similar for accurate distance calculations
+    jobs = Job.objects.filter(
+        is_active=True,
+        latitude__isnull=False,
+        longitude__isnull=False
+    )
+
+    nearby_jobs = []
+    for job in jobs:
+        # Simple distance calculation (approximate)
+        import math
+        lat_diff = abs(float(job.latitude) - lat)
+        lng_diff = abs(float(job.longitude) - lng)
+        distance = math.sqrt(lat_diff**2 + lng_diff**2) * 111  # Rough km conversion
+
+        if distance <= radius:
+            nearby_jobs.append({
+                'id': job.id,
+                'title': job.title,
+                'company': job.company,
+                'location': job.get_location_display(),
+                'lat': float(job.latitude),
+                'lng': float(job.longitude),
+                'url': job.get_absolute_url(),
+                'salary': job.get_salary_display(),
+                'job_type': job.get_job_type_display(),
+                'remote_type': job.get_remote_type_display(),
+                'distance': round(distance, 1)
+            })
+
+    return JsonResponse({'jobs': nearby_jobs})
+
+@recruiter_required
+def jobs_without_coordinates_api(request):
+    """API endpoint to get recruiter's jobs without coordinates"""
+    jobs = Job.objects.filter(
+        posted_by=request.user,
+        latitude__isnull=True,
+        longitude__isnull=True
+    )
+
+    jobs_data = []
+    for job in jobs:
+        jobs_data.append({
+            'id': job.id,
+            'title': job.title,
+            'company': job.company,
+            'location': job.get_location_display()
+        })
+
+    return JsonResponse({'jobs': jobs_data})
+
+@recruiter_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def save_job_location(request):
+    """API endpoint to save job location from map pin"""
+    try:
+        data = json.loads(request.body)
+        job_id = data.get('job_id')
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        address = data.get('address', '')
+
+        if not all([job_id, latitude, longitude]):
+            return JsonResponse({'error': 'Missing required fields'}, status=400)
+
+        # Get the job and verify ownership
+        job = get_object_or_404(Job, pk=job_id, posted_by=request.user)
+
+        # Update job location
+        job.latitude = latitude
+        job.longitude = longitude
+        if address:
+            job.full_address = address
+        job.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Job location updated successfully',
+            'job_id': job.id,
+            'latitude': float(job.latitude),
+            'longitude': float(job.longitude)
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

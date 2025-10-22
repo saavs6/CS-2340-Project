@@ -33,9 +33,16 @@
         <div class="collapse navbar-collapse"
              id="navbarNavAltMarkup">
           <div class="navbar-nav ms-auto navbar-ml">
-            <!-- Jobs Link for Everyone -->
-            <a class="nav-link" href="{% url 'jobs:list' %}">Find Jobs</a>
-            
+            {% if user.is_authenticated %}
+              <!-- Jobs Link for Applicants Only -->
+              {% if template_data.user_type == 'applicant' %}
+                <a class="nav-link" href="{% url 'jobs:list' %}">Find Jobs</a>
+              {% endif %}
+            {% else %}
+              <!-- Jobs Link for Non-authenticated Users -->
+              <a class="nav-link" href="{% url 'jobs:list' %}">Find Jobs</a>
+            {% endif %}
+
             {% if user.is_authenticated %}
               <!-- User-specific links based on role -->
               {% if template_data.user_type == 'applicant' %}
@@ -46,7 +53,7 @@
                 <a class="nav-link" href="{% url 'jobs:create' %}">Post Job</a>
                 <a class="nav-link" href="{% url 'jobs:recruiter_jobs' %}">My Jobs</a>
               {% endif %}
-              
+
               <div class="vr bg-white mx-2 d-none d-lg-block"></div>
               <a class="nav-link" href="{% url 'home.about' %}">About</a>
               <a class="nav-link" href="{% url 'accounts.logout' %}">Logout ({{user.username }})</a>

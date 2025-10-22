@@ -4,7 +4,12 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>My Job Postings</h2>
-        <a href="{% url 'jobs:create' %}" class="btn btn-primary">Post New Job</a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'jobs:recruiter_job_map' %}" class="btn btn-outline-primary">
+                <i class="fas fa-map-marker-alt"></i> Map View
+            </a>
+            <a href="{% url 'jobs:create' %}" class="btn btn-primary">Post New Job</a>
+        </div>
     </div>
 
     {% if jobs %}

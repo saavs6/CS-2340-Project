@@ -58,6 +58,11 @@ class Job(models.Model):
     country = models.CharField(max_length=100, default='United States')
     postal_code = models.CharField(max_length=20, blank=True)
 
+    # Map coordinates for Google Maps integration
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Latitude for map display")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Longitude for map display")
+    full_address = models.TextField(blank=True, help_text="Full address for geocoding and display")
+
 
     # Skills (comma-separated for simplicity)
     required_skills = models.TextField(blank=True, help_text="Required skills, separated by commas")
@@ -87,6 +92,16 @@ class Job(models.Model):
     def get_location_display(self):
         """Get formatted location string"""
         return f"{self.city}, {self.state}, {self.country}"
+
+    def get_coordinates(self):
+        """Get coordinates as tuple (lat, lng) for map display"""
+        if self.latitude and self.longitude:
+            return (float(self.latitude), float(self.longitude))
+        return None
+
+    def has_coordinates(self):
+        """Check if job has valid coordinates"""
+        return self.latitude is not None and self.longitude is not None
 
     def get_salary_display(self):
         """Get formatted salary range"""
