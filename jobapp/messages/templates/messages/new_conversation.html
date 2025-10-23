@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}New Conversation{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-plus"></i> Start New Conversation</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="form-group">
+                            <label for="{{ form.recipient.id_for_label }}">Recipient</label>
+                            {{ form.recipient }}
+                            {% if form.recipient.errors %}
+                                <div class="text-danger">
+                                    {{ form.recipient.errors }}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                {% if user_type == 'recruiter' %}
+                                    Select an applicant to message
+                                {% else %}
+                                    Select a recruiter to message
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="{{ form.subject.id_for_label }}">Subject</label>
+                            {{ form.subject }}
+                            {% if form.subject.errors %}
+                                <div class="text-danger">
+                                    {{ form.subject.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group text-right">
+                            <a href="{% url 'messages:conversation_list' %}" class="btn btn-secondary mr-2">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Start Conversation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Help Text -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5><i class="fas fa-info-circle"></i> How it works</h5>
+                    <ul class="mb-0">
+                        <li>You can only message users of a different type ({% if user_type == 'recruiter' %}applicants{% else %}recruiters{% endif %})</li>
+                        <li>Each conversation has a subject line to help organize your messages</li>
+                        <li>You can have multiple conversations with the same person</li>
+                        <li>Messages are private and only visible to participants</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

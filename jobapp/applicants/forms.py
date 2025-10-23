@@ -5,6 +5,13 @@ from .models import ApplicantProfile, Education, WorkExperience
 class ApplicantProfileForm(forms.ModelForm):
     """Form for creating and editing applicant profiles"""
 
+    email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'you@example.com'}),
+        label='Email Address',
+        help_text='Used for email communication with recruiters.'
+    )
+
     class Meta:
         model = ApplicantProfile
         fields = [
@@ -99,6 +106,23 @@ class ApplicantProfileForm(forms.ModelForm):
             'is_public': 'Make profile visible to recruiters',
             'is_seeking_jobs': 'Currently seeking job opportunities',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pre-fill email from related user (use self.instance, since ModelForm pops kwargs)
+        if getattr(self.instance, 'user', None):
+            self.fields['email'].initial = self.instance.user.email
+
+    def save(self, commit=True):
+        profile = super().save(commit)
+        email = self.cleaned_data.get('email', '').strip()
+        # Update the related user email
+        if getattr(profile, 'user', None) is not None:
+            profile.user.email = email
+            # Always save user if committing the profile
+            if commit:
+                profile.user.save(update_fields=['email'])
+        return profile
 
 class EducationForm(forms.ModelForm):
     """Form for adding/editing education records"""

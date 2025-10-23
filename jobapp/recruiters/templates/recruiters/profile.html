@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-3 mt-4">
+  <div class="container">
+    <div class="row">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1>Company Profile</h1>
+          <a href="{% url 'recruiters:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-home"></i> Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-building"></i> Company Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label" for="{{ form.company_name.id_for_label }}">Company Name</label>
+                  {{ form.company_name }}
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label" for="{{ form.industry.id_for_label }}">Industry</label>
+                  {{ form.industry }}
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label" for="{{ form.company_size.id_for_label }}">Company Size</label>
+                  {{ form.company_size }}
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label" for="{{ form.website.id_for_label }}">Website</label>
+                  {{ form.website }}
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label" for="{{ form.phone.id_for_label }}">Phone</label>
+                  {{ form.phone }}
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                  {{ form.email }}
+                  {% if form.email.errors %}
+                  <div class="text-danger">{{ form.email.errors }}</div>
+                  {% endif %}
+                  <small class="form-text text-muted">Used when emailing candidates.</small>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label" for="{{ form.city.id_for_label }}">City</label>
+                  {{ form.city }}
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label" for="{{ form.state.id_for_label }}">State/Province</label>
+                  {{ form.state }}
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label" for="{{ form.country.id_for_label }}">Country</label>
+                  {{ form.country }}
+                </div>
+                <div class="col-12 mb-3">
+                  <label class="form-label" for="{{ form.company_description.id_for_label }}">Company Description</label>
+                  {{ form.company_description }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-12 d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Save Profile
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+  {% if messages %}
+  <div class="container mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  
+</div>
+{% endblock %}
+

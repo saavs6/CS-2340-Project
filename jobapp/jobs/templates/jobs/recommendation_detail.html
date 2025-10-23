@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h1>{{ job.title }} — {{ job.company }}</h1>
+  <p class="text-muted">Score: {{ recommendation.match_score|floatformat:1 }}</p>
+  <p>{{ job.description }}</p>
+
+  <h5>Matched Skills</h5>
+  <p>{{ recommendation.matched_skills }}</p>
+
+  <h5>Missing Required Skills</h5>
+  <p>{{ recommendation.missing_skills }}</p>
+
+  <a href="{% url 'jobs:detail' job.pk %}" class="btn btn-primary">View Job</a>
+  <a href="{% url 'jobs:apply' job.pk %}" class="btn btn-success">Apply</a>
+</div>
+{% endblock content %}

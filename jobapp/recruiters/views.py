@@ -12,6 +12,9 @@ from applicants.models import ApplicantProfile, Education, WorkExperience
 from jobs.models import Job, JobApplication
 from .models import RecruiterProfile
 from .forms import RecruiterProfileForm, CandidateSearchForm
+from .forms import SavedSearchForm
+from .models import SavedSearch
+from django.utils import timezone
 
 @recruiter_required
 def dashboard(request):
@@ -217,11 +220,75 @@ def job_applications(request, job_id):
         'user_type': 'recruiter'
     }
 
+    # Candidate recommendations (from applied candidates only)
+    # Build sets of normalized skills from job
+    def normalize_skills(skills_list):
+        return set([s.strip().lower() for s in skills_list if s and s.strip()])
+
+    required = normalize_skills(job.get_required_skills_list())
+    preferred = normalize_skills(job.get_preferred_skills_list())
+
+    recommendations = []
+
+    def remote_bonus(job_remote, applicant_pref):
+        mapping = {
+            'remote': {'remote_only': 2, 'hybrid': 1, 'flexible': 1, 'onsite_only': 0},
+            'hybrid': {'hybrid': 2, 'flexible': 1, 'remote_only': 1, 'onsite_only': 1},
+            'onsite': {'onsite_only': 2, 'hybrid': 1, 'flexible': 1, 'remote_only': -3},
+        }
+        return mapping.get(job_remote, {}).get(applicant_pref, 0)
+
+    # Score only candidates who applied to this job
+    applied_applications = applications.select_related('applicant')
+    for app in applied_applications:
+        # Get applicant profile; skip if not found
+        try:
+            profile = app.applicant.applicant_profile
+        except ApplicantProfile.DoesNotExist:
+            continue
+
+        # Normalize applicant skills
+        applicant_skills = set()
+        if profile.skills:
+            applicant_skills = set([s.strip().lower() for s in profile.skills.split(',') if s.strip()])
+
+        matched_required = required & applicant_skills
+        matched_preferred = preferred & applicant_skills
+
+        # Base skill score
+        score = len(matched_required) * 3 + len(matched_preferred)
+
+        # Location bonus
+        if profile.city and profile.state:
+            if profile.city.strip().lower() == job.city.strip().lower() and profile.state.strip().lower() == job.state.strip().lower():
+                score += 2
+            elif profile.state.strip().lower() == job.state.strip().lower():
+                score += 1
+
+        # Remote preference bonus/penalty
+        score += remote_bonus(job.remote_type, profile.remote_work_preference)
+
+        # If no skills match at all, down-rank significantly
+        if not matched_required and not matched_preferred:
+            score -= 2
+
+        recommendations.append({
+            'profile': profile,
+            'score': score,
+            'matched_required': sorted(matched_required),
+            'matched_preferred': sorted(matched_preferred),
+        })
+
+    # Sort and limit
+    recommendations.sort(key=lambda x: x['score'], reverse=True)
+    recommended_candidates = [r for r in recommendations if r['score'] > 0][:8]
+
     return render(request, 'recruiters/job_applications.html', {
         'template_data': template_data,
         'job': job,
         'kanban_columns': kanban_columns,
-        'applications': applications
+        'applications': applications,
+        'recommended_candidates': recommended_candidates,
     })
 
 @recruiter_required
@@ -302,3 +369,90 @@ def application_detail(request, application_id):
         'applicant_profile': applicant_profile,
         'job': application.job
     })
+
+
+@recruiter_required
+def saved_search_list(request):
+    """List saved searches for the recruiter"""
+    searches = list(SavedSearch.objects.filter(recruiter=request.user).order_by('-created_at'))
+
+    # For each saved search, compute current match count (reuse filtering logic)
+    for s in searches:
+        qs = ApplicantProfile.objects.filter(is_public=True)
+        if s.keywords:
+            kw = s.keywords.strip()
+            qs = qs.filter(
+                Q(user__first_name__icontains=kw) |
+                Q(user__last_name__icontains=kw) |
+                Q(user__username__icontains=kw) |
+                Q(headline__icontains=kw) |
+                Q(summary__icontains=kw)
+            )
+        if s.skills:
+            for skill in [sk.strip() for sk in s.skills.split(',') if sk.strip()]:
+                qs = qs.filter(skills__icontains=skill)
+        if s.location:
+            loc = s.location.strip()
+            qs = qs.filter(
+                Q(city__icontains=loc) | Q(state__icontains=loc) | Q(country__icontains=loc) | Q(location__icontains=loc)
+            )
+        if s.remote_preference:
+            qs = qs.filter(remote_work_preference=s.remote_preference)
+        if s.willing_to_relocate:
+            qs = qs.filter(willing_to_relocate=True)
+        if s.is_seeking_jobs:
+            qs = qs.filter(is_seeking_jobs=True)
+        # Experience and education are simplified here
+        if s.education_level:
+            if s.education_level == 'high_school':
+                qs = qs.filter(education__isnull=True)
+            else:
+                qs = qs.filter(education__degree__icontains=s.education_level)
+
+        s.match_count = qs.count()
+
+    template_data = {'title': 'Saved Searches', 'user_type': 'recruiter'}
+    return render(request, 'recruiters/saved_search_list.html', {'template_data': template_data, 'searches': searches})
+
+
+@recruiter_required
+def saved_search_create(request):
+    """Create a new saved search"""
+    if request.method == 'POST':
+        form = SavedSearchForm(request.POST)
+        if form.is_valid():
+            saved = form.save(commit=False)
+            saved.recruiter = request.user
+            saved.save()
+            messages.success(request, 'Saved search created.')
+            return redirect('recruiters:saved_search_list')
+    else:
+        form = SavedSearchForm()
+    template_data = {'title': 'Create Saved Search', 'user_type': 'recruiter'}
+    return render(request, 'recruiters/saved_search_form.html', {'template_data': template_data, 'form': form})
+
+
+@recruiter_required
+def saved_search_edit(request, pk):
+    saved = get_object_or_404(SavedSearch, pk=pk, recruiter=request.user)
+    if request.method == 'POST':
+        form = SavedSearchForm(request.POST, instance=saved)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Saved search updated.')
+            return redirect('recruiters:saved_search_list')
+    else:
+        form = SavedSearchForm(instance=saved)
+    template_data = {'title': 'Edit Saved Search', 'user_type': 'recruiter'}
+    return render(request, 'recruiters/saved_search_form.html', {'template_data': template_data, 'form': form, 'saved': saved})
+
+
+@recruiter_required
+def saved_search_delete(request, pk):
+    saved = get_object_or_404(SavedSearch, pk=pk, recruiter=request.user)
+    if request.method == 'POST':
+        saved.delete()
+        messages.success(request, 'Saved search deleted.')
+        return redirect('recruiters:saved_search_list')
+    template_data = {'title': 'Delete Saved Search', 'user_type': 'recruiter'}
+    return render(request, 'recruiters/saved_search_confirm_delete.html', {'template_data': template_data, 'saved': saved})

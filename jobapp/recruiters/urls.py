@@ -13,4 +13,9 @@ urlpatterns = [
     path('jobs/<int:job_id>/kanban/', views.kanban_board, name='kanban_board'),
     path('applications/<int:application_id>/', views.application_detail, name='application_detail'),
     path('api/update-application-status/', views.update_application_status, name='update_application_status'),
+    # Saved searches
+    path('saved-searches/', views.saved_search_list, name='saved_search_list'),
+    path('saved-searches/create/', views.saved_search_create, name='saved_search_create'),
+    path('saved-searches/<int:pk>/edit/', views.saved_search_edit, name='saved_search_edit'),
+    path('saved-searches/<int:pk>/delete/', views.saved_search_delete, name='saved_search_delete'),
 ]

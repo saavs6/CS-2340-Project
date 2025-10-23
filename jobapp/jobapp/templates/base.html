@@ -53,6 +53,12 @@
                 <a class="nav-link" href="{% url 'jobs:create' %}">Post Job</a>
                 <a class="nav-link" href="{% url 'jobs:recruiter_jobs' %}">My Jobs</a>
               {% endif %}
+              
+              <!-- Messages link for all authenticated users -->
+              <a class="nav-link" href="{% url 'messaging:conversation_list' %}">
+                <i class="fas fa-comments"></i> Messages
+                <span id="unread-count" class="badge badge-danger d-none">0</span>
+              </a>
 
               <div class="vr bg-white mx-2 d-none d-lg-block"></div>
               <a class="nav-link" href="{% url 'home.about' %}">About</a>
@@ -131,5 +137,26 @@
       </div>
     </section>
     <!-- Footer -->
+    
+    <!-- Unread messages count script -->
+    {% if user.is_authenticated %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load unread message count
+        fetch('{% url "messaging:unread_count" %}')
+            .then(response => response.json())
+            .then(data => {
+                const unreadCountElement = document.getElementById('unread-count');
+                if (data.unread_count > 0) {
+                    unreadCountElement.textContent = data.unread_count;
+                    unreadCountElement.classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading unread count:', error);
+            });
+    });
+    </script>
+    {% endif %}
   </body>
 </html>
