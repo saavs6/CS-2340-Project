@@ -23,4 +23,7 @@ urlpatterns = [
     path('<int:pk>/edit/', views.job_edit, name='edit'),
     path('my-jobs/', views.recruiter_jobs, name='recruiter_jobs'),
     path('my-jobs/map/', views.recruiter_job_map, name='recruiter_job_map'),
+    # Applicant recommendations
+    path('recommendations/', views.recommendations_list, name='recommendations_list'),
+    path('recommendations/<int:pk>/', views.recommendation_detail, name='recommendation_detail'),
 ]

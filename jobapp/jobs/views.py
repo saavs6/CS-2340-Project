@@ -9,6 +9,7 @@ from django.views.decorators.http import require_http_methods
 from django.conf import settings
 from accounts.decorators import recruiter_required, applicant_required
 from .models import Job, JobApplication
+from .models import JobRecommendation
 from .forms import JobForm, JobSearchForm, JobApplicationForm
 import json
 
@@ -246,6 +247,44 @@ def my_applications(request):
     }
 
     return render(request, 'jobs/my_applications.html', context)
+
+
+@applicant_required
+def recommendations_list(request):
+    """List job recommendations for the logged-in applicant"""
+    recs = JobRecommendation.objects.filter(applicant=request.user, is_dismissed=False).order_by('-match_score')
+
+    context = {
+        'template_data': {
+            'title': 'Job Recommendations',
+            'user_type': 'applicant'
+        },
+        'recommendations': recs
+    }
+
+    return render(request, 'jobs/recommendations_list.html', context)
+
+
+@applicant_required
+def recommendation_detail(request, pk):
+    """Detail view for a single job recommendation"""
+    rec = get_object_or_404(JobRecommendation, pk=pk, applicant=request.user)
+
+    # mark as viewed
+    if not rec.is_viewed:
+        rec.is_viewed = True
+        rec.save()
+
+    context = {
+        'template_data': {
+            'title': f'Recommendation - {rec.job.title}',
+            'user_type': 'applicant'
+        },
+        'recommendation': rec,
+        'job': rec.job
+    }
+
+    return render(request, 'jobs/recommendation_detail.html', context)
 
 @applicant_required
 def application_detail(request, pk):
