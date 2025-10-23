@@ -55,9 +55,17 @@
                     
                     {% if user.is_authenticated %}
                         {% if template_data.user_type == 'applicant' %}
-                            <!-- Apply button for applicants -->
-                            <a href="#" class="btn btn-primary w-100 mb-2">Apply Now</a>
-                            <a href="#" class="btn btn-outline-secondary w-100 mb-2">Save Job</a>
+                            {% if has_applied %}
+                                <button class="btn btn-success w-100 mb-2" disabled>Already Applied</button>
+                            {% else %}
+                                <form method="post" action="{% url 'jobs:apply' job.pk %}">
+                                    {% csrf_token %}
+                                    <div class="mb-2">
+                                        <textarea name="cover_letter" class="form-control" rows="4" placeholder="Add a quick personalized note (optional)..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">Apply with One Click</button>
+                                </form>
+                            {% endif %}
                         {% elif template_data.user_type == 'recruiter' and job.posted_by == user %}
                             <!-- Edit button for job owner -->
                             <a href="{% url 'jobs:edit' job.pk %}" class="btn btn-warning w-100 mb-2">Edit Job</a>

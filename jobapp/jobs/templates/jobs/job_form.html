@@ -23,7 +23,7 @@
 
                     <form method="POST">
                         {% csrf_token %}
-                        
+
                         <!-- Basic Information -->
                         <h5 class="mb-3 text-primary">Basic Information</h5>
                         <div class="row mb-3">
@@ -46,7 +46,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
+
                         <!-- Job Description -->
                         <div class="mb-3">
                             <label class="form-label" for="{{ form.description.id_for_label }}">
@@ -70,7 +70,7 @@
                             {% endif %}
                             <small class="form-text text-muted">List the qualifications, experience, and requirements for this position.</small>
                         </div>
-                        
+
                         <!-- Job Details -->
                         <h5 class="mb-3 text-primary">Job Details</h5>
                         <div class="row mb-3">
@@ -87,7 +87,7 @@
                                 {{ form.experience_level }}
                             </div>
                         </div>
-                        
+
                         <!-- Salary Information -->
                         <h5 class="mb-3 text-primary">Compensation</h5>
                         <div class="row mb-3">
@@ -108,7 +108,7 @@
                                 {{ form.salary_period }}
                             </div>
                         </div>
-                        
+
                         <!-- Location -->
                         <h5 class="mb-3 text-primary">Location</h5>
                         <div class="row mb-3">
@@ -139,7 +139,19 @@
                                 {{ form.postal_code }}
                             </div>
                         </div>
-                        
+
+                        <!-- Full Address for Map Display -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label class="form-label" for="{{ form.full_address.id_for_label }}">{{ form.full_address.label }}</label>
+                                {{ form.full_address }}
+                                <small class="form-text text-muted">Optional: Full street address for accurate map display</small>
+                                {% if form.full_address.errors %}
+                                    <div class="text-danger small">{{ form.full_address.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
                         <!-- Skills -->
                         <h5 class="mb-3 text-primary">Skills & Requirements</h5>
                         <div class="row mb-3">
@@ -154,7 +166,7 @@
                                 <small class="form-text text-muted">Nice-to-have skills, separated by commas</small>
                             </div>
                         </div>
-                        
+
                         <!-- Additional Information -->
                         <h5 class="mb-3 text-primary">Additional Information</h5>
                         <div class="mb-3">
@@ -178,7 +190,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Form Actions -->
                         <hr>
                         <div class="d-flex justify-content-between">

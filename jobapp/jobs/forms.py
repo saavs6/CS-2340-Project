@@ -1,9 +1,10 @@
 from django import forms
 from .models import Job, JobApplication
+from .utils import geocode_address
 
 class JobForm(forms.ModelForm):
     """Form for creating and editing job postings"""
-    
+
     def clean_title(self):
         title = self.cleaned_data.get('title')
         if title and len(title.strip()) < 3:
@@ -26,44 +27,64 @@ class JobForm(forms.ModelForm):
         cleaned_data = super().clean()
         salary_min = cleaned_data.get('salary_min')
         salary_max = cleaned_data.get('salary_max')
-        
+
         if salary_min and salary_max:
             if salary_min >= salary_max:
                 raise forms.ValidationError("Maximum salary must be greater than minimum salary.")
-        
+
         return cleaned_data
-    
+
+    def save(self, commit=True):
+        job = super().save(commit=False)
+
+        # Geocode the address if coordinates are not already set
+        if not job.latitude or not job.longitude:
+            lat, lng = geocode_address(
+                address=job.full_address,
+                city=job.city,
+                state=job.state,
+                country=job.country,
+                postal_code=job.postal_code
+            )
+            if lat and lng:
+                job.latitude = lat
+                job.longitude = lng
+
+        if commit:
+            job.save()
+        return job
+
     class Meta:
         model = Job
         fields = [
             'title', 'company', 'description', 'requirements',
             'job_type', 'remote_type', 'experience_level',
             'salary_min', 'salary_max', 'salary_currency', 'salary_period',
-            'city', 'state', 'country', 'postal_code',
+            'city', 'state', 'country', 'postal_code', 'full_address',
             'required_skills', 'preferred_skills',
             'visa_sponsorship', 'benefits', 'application_deadline'
         ]
         widgets = {
             'title': forms.TextInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'placeholder': 'e.g., Senior Software Engineer',
                 'required': True,
                 'maxlength': 200
             }),
             'company': forms.TextInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'placeholder': 'Company Name',
                 'required': True,
                 'maxlength': 200
             }),
             'description': forms.Textarea(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'rows': 6,
                 'required': True,
                 'placeholder': 'Describe the job role, responsibilities, and what makes this position exciting...'
             }),
             'requirements': forms.Textarea(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'rows': 4,
                 'required': True,
                 'placeholder': 'List the qualifications, experience, and requirements for this position...'
@@ -72,19 +93,19 @@ class JobForm(forms.ModelForm):
             'remote_type': forms.Select(attrs={'class': 'form-control'}),
             'experience_level': forms.Select(attrs={'class': 'form-control'}),
             'salary_min': forms.NumberInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'step': '1000',
                 'min': '0',
                 'placeholder': '50000'
             }),
             'salary_max': forms.NumberInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'step': '1000',
                 'min': '0',
                 'placeholder': '100000'
             }),
             'salary_currency': forms.TextInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'value': 'USD',
                 'maxlength': 3
             }),
@@ -102,7 +123,7 @@ class JobForm(forms.ModelForm):
                 'maxlength': 100
             }),
             'country': forms.TextInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'value': 'United States',
                 'maxlength': 100
             }),
@@ -111,23 +132,29 @@ class JobForm(forms.ModelForm):
                 'placeholder': 'e.g., 94105',
                 'maxlength': 20
             }),
+            'full_address': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Full street address for map display (optional)',
+                'maxlength': 500
+            }),
             'required_skills': forms.Textarea(attrs={
-                'class': 'form-control', 
-                'rows': 2, 
+                'class': 'form-control',
+                'rows': 2,
                 'placeholder': 'Python, Django, React, SQL'
             }),
             'preferred_skills': forms.Textarea(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'rows': 2,
                 'placeholder': 'Docker, AWS, Machine Learning'
             }),
             'benefits': forms.Textarea(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'rows': 3,
                 'placeholder': 'Health insurance, 401k, flexible hours, remote work options...'
             }),
             'application_deadline': forms.DateInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'type': 'date'
             }),
             'visa_sponsorship': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -135,7 +162,7 @@ class JobForm(forms.ModelForm):
 
 class JobSearchForm(forms.Form):
     """Form for job search with filters"""
-    
+
     keywords = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
@@ -143,7 +170,7 @@ class JobSearchForm(forms.Form):
             'placeholder': 'Job title, company, or keywords...'
         })
     )
-    
+
     location = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
@@ -151,25 +178,25 @@ class JobSearchForm(forms.Form):
             'placeholder': 'City, state, or country...'
         })
     )
-    
+
     job_type = forms.MultipleChoiceField(
         choices=Job.JOB_TYPE_CHOICES,
         required=False,
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'})
     )
-    
+
     remote_type = forms.MultipleChoiceField(
         choices=Job.REMOTE_CHOICES,
         required=False,
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'})
     )
-    
+
     experience_level = forms.MultipleChoiceField(
         choices=Job.EXPERIENCE_CHOICES,
         required=False,
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'})
     )
-    
+
     salary_min = forms.DecimalField(
         required=False,
         widget=forms.NumberInput(attrs={
@@ -177,12 +204,12 @@ class JobSearchForm(forms.Form):
             'placeholder': 'Minimum salary'
         })
     )
-    
+
     visa_sponsorship = forms.BooleanField(
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
-    
+
     skills = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
@@ -193,7 +220,7 @@ class JobSearchForm(forms.Form):
 
 class JobApplicationForm(forms.ModelForm):
     """Form for applying to jobs"""
-    
+
     class Meta:
         model = JobApplication
         fields = ['cover_letter']

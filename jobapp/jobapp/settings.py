@@ -12,6 +12,24 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+# Load environment variables from .env file in project root
+def load_env_file():
+    """Load environment variables from .env file"""
+    env_file = Path(__file__).resolve().parent.parent / '.env'
+
+    if env_file.exists():
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    os.environ.setdefault(key, value)
+
+# Load .env file
+load_env_file()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,10 +38,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-5pyeq&u%v1@b(f)-gx7h5*!$m$tvlk+61$gghq2_9ig7u$l+7$'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-5pyeq&u%v1@b(f)-gx7h5*!$m$tvlk+61$gghq2_9ig7u$l+7$')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes', 'on')
 
 ALLOWED_HOSTS = []
 
@@ -42,6 +60,7 @@ INSTALLED_APPS = [
     'applicants',
     'recruiters',
     'jobs',
+    'messaging',
 ]
 
 MIDDLEWARE = [
@@ -129,3 +148,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATICFILES_DIRS = [
     BASE_DIR / 'jobapp/static/',
 ]
+
+# Google Maps API Key
+GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')

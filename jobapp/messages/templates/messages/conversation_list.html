@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-comments"></i> Messages</h2>
+                <a href="{% url 'messages:new_conversation' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> New Conversation
+                </a>
+            </div>
+
+            <!-- Search Form -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="form-inline">
+                        <div class="form-group mr-3">
+                            {{ search_form.search }}
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        {% if search_form.search.value %}
+                            <a href="{% url 'messages:conversation_list' %}" class="btn btn-outline-secondary ml-2">
+                                <i class="fas fa-times"></i> Clear
+                            </a>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+
+            <!-- Conversations List -->
+            {% if page_obj %}
+                <div class="card">
+                    <div class="card-body p-0">
+                        {% for conversation in page_obj %}
+                            <div class="border-bottom p-3 {% if conversation.get_unread_count:user > 0 %}bg-light{% endif %}">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <div class="d-flex align-items-center">
+                                            <div class="mr-3">
+                                                {% if conversation.get_other_participant:user.userprofile.user_type == 'recruiter' %}
+                                                    <i class="fas fa-user-tie text-primary fa-2x"></i>
+                                                {% else %}
+                                                    <i class="fas fa-user text-success fa-2x"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <h5 class="mb-1">
+                                                    <a href="{% url 'messages:conversation_detail' conversation.id %}" class="text-decoration-none">
+                                                        {{ conversation.get_other_participant:user.username }}
+                                                    </a>
+                                                    {% if conversation.get_unread_count:user > 0 %}
+                                                        <span class="badge badge-danger">{{ conversation.get_unread_count:user }}</span>
+                                                    {% endif %}
+                                                </h5>
+                                                <p class="mb-1 text-muted">{{ conversation.subject }}</p>
+                                                {% if conversation.get_latest_message %}
+                                                    <small class="text-muted">
+                                                        {{ conversation.get_latest_message.content|truncatechars:100 }}
+                                                    </small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-right">
+                                        <small class="text-muted">
+                                            {% if conversation.last_message_at %}
+                                                {{ conversation.last_message_at|timesince }} ago
+                                            {% else %}
+                                                {{ conversation.created_at|timesince }} ago
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                    <nav aria-label="Conversations pagination" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% if search_form.search.value %}&search={{ search_form.search.value }}{% endif %}">First</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_form.search.value %}&search={{ search_form.search.value }}{% endif %}">Previous</a>
+                                </li>
+                            {% endif %}
+
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                </span>
+                            </li>
+
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_form.search.value %}&search={{ search_form.search.value }}{% endif %}">Next</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_form.search.value %}&search={{ search_form.search.value }}{% endif %}">Last</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No conversations yet</h4>
+                        <p class="text-muted">Start a conversation with someone to begin messaging.</p>
+                        <a href="{% url 'messages:new_conversation' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Start New Conversation
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

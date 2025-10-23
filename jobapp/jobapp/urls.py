@@ -23,5 +23,6 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('applicants/', include('applicants.urls')),
     path('recruiters/', include('recruiters.urls')),
-    path('jobs/', include('jobs.urls')),  # Add this line
+    path('jobs/', include('jobs.urls')),
+    path('messaging/', include('messaging.urls')),
 ]

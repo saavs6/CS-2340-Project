@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ conversation.subject }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Conversation Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="mb-1">
+                                <i class="fas fa-comments"></i> {{ conversation.subject }}
+                            </h3>
+                            <p class="text-muted mb-0">
+                                Conversation with 
+                                <strong>{{ other_participant.username }}</strong>
+                                {% if other_participant.userprofile.user_type == 'recruiter' %}
+                                    <span class="badge badge-primary ml-2">Recruiter</span>
+                                {% else %}
+                                    <span class="badge badge-success ml-2">Applicant</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <a href="{% url 'messaging:conversation_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Messages
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="card mb-4">
+                <div class="card-body" id="messages-container" style="height: 500px; overflow-y: auto;">
+                    {% if page_obj %}
+                        {% for message in page_obj %}
+                            <div class="message mb-3 {% if message.sender == user %}text-right{% else %}text-left{% endif %}">
+                                <div class="d-flex {% if message.sender == user %}justify-content-end{% else %}justify-content-start{% endif %}">
+                                    <div class="message-bubble {% if message.sender == user %}bg-primary text-white{% else %}bg-light{% endif %} p-3 rounded" style="max-width: 70%;">
+                                        <div class="message-content">
+                                            {{ message.content|linebreaks }}
+                                        </div>
+                                        <div class="message-meta mt-2">
+                                            <small class="{% if message.sender == user %}text-white-50{% else %}text-muted{% endif %}">
+                                                <i class="fas fa-user"></i> {{ message.sender.username }}
+                                                <i class="fas fa-clock ml-2"></i> {{ message.created_at|date:"M d, Y H:i" }}
+                                                {% if message.is_read and message.sender == user %}
+                                                    <i class="fas fa-check-double ml-2"></i>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-comment-slash fa-3x mb-3"></i>
+                            <p>No messages yet. Start the conversation!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Message Form -->
+            <div class="card">
+                <div class="card-body">
+                    <form id="message-form" method="post" action="{% url 'messaging:send_message' conversation.id %}">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            {{ message_form.content }}
+                        </div>
+                        <div class="text-right">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Send Message
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination for Messages -->
+{% if page_obj.has_other_pages %}
+    <nav aria-label="Messages pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+            </li>
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-scroll to bottom of messages
+    const messagesContainer = document.getElementById('messages-container');
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Handle message form submission with AJAX
+    const messageForm = document.getElementById('message-form');
+    messageForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const content = formData.get('content');
+        
+        if (!content.trim()) {
+            alert('Please enter a message.');
+            return;
+        }
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Clear form
+                this.querySelector('textarea').value = '';
+                
+                // Reload page to show new message
+                location.reload();
+            } else {
+                alert('Error sending message: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error sending message. Please try again.');
+        });
+    });
+});
+</script>
+{% endblock %}

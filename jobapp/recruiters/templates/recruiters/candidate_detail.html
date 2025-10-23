@@ -225,6 +225,9 @@
           <div class="card-body">
             <p class="text-muted small mb-3">Reach out to this candidate about opportunities.</p>
             <div class="d-grid gap-2">
+              <a href="{% url 'messaging:start_conversation_with_user' candidate.user.id %}" class="btn btn-success">
+                <i class="fas fa-comments"></i> Send Message
+              </a>
               <a href="mailto:{{ candidate.user.email }}" class="btn btn-primary">
                 <i class="fas fa-envelope"></i> Send Email
               </a>

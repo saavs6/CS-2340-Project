@@ -33,9 +33,16 @@
         <div class="collapse navbar-collapse"
              id="navbarNavAltMarkup">
           <div class="navbar-nav ms-auto navbar-ml">
-            <!-- Jobs Link for Everyone -->
-            <a class="nav-link" href="{% url 'jobs:list' %}">Find Jobs</a>
-            
+            {% if user.is_authenticated %}
+              <!-- Jobs Link for Applicants Only -->
+              {% if template_data.user_type == 'applicant' %}
+                <a class="nav-link" href="{% url 'jobs:list' %}">Find Jobs</a>
+              {% endif %}
+            {% else %}
+              <!-- Jobs Link for Non-authenticated Users -->
+              <a class="nav-link" href="{% url 'jobs:list' %}">Find Jobs</a>
+            {% endif %}
+
             {% if user.is_authenticated %}
               <!-- User-specific links based on role -->
               {% if template_data.user_type == 'applicant' %}
@@ -47,6 +54,12 @@
                 <a class="nav-link" href="{% url 'jobs:recruiter_jobs' %}">My Jobs</a>
               {% endif %}
               
+              <!-- Messages link for all authenticated users -->
+              <a class="nav-link" href="{% url 'messaging:conversation_list' %}">
+                <i class="fas fa-comments"></i> Messages
+                <span id="unread-count" class="badge badge-danger d-none">0</span>
+              </a>
+
               <div class="vr bg-white mx-2 d-none d-lg-block"></div>
               <a class="nav-link" href="{% url 'home.about' %}">About</a>
               <a class="nav-link" href="{% url 'accounts.logout' %}">Logout ({{user.username }})</a>
@@ -65,6 +78,13 @@
       {% block content %}
       {% endblock content %}
     </div>
+    {% if messages %}
+    <div class="container mt-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
     <!-- Footer -->
      <section class="p-3 ms-footer d-none d-md-block">
       <div class="container">
@@ -117,5 +137,26 @@
       </div>
     </section>
     <!-- Footer -->
+    
+    <!-- Unread messages count script -->
+    {% if user.is_authenticated %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load unread message count
+        fetch('{% url "messaging:unread_count" %}')
+            .then(response => response.json())
+            .then(data => {
+                const unreadCountElement = document.getElementById('unread-count');
+                if (data.unread_count > 0) {
+                    unreadCountElement.textContent = data.unread_count;
+                    unreadCountElement.classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading unread count:', error);
+            });
+    });
+    </script>
+    {% endif %}
   </body>
 </html>

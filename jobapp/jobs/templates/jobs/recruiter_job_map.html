@@ -1,0 +1,399 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ template_data.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">My Job Locations</h1>
+                <div class="d-flex gap-2 align-items-center">
+                    <a href="{% url 'jobs:recruiter_jobs' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-list"></i> List View
+                    </a>
+                    <a href="{% url 'jobs:create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Post New Job
+                    </a>
+                    <button id="pin-mode-btn" class="btn btn-warning">
+                        <i class="fas fa-map-pin"></i> Pin Mode
+                    </button>
+                    <span class="badge bg-primary d-flex align-items-center" style="height: 38px; padding: 0.375rem 0.75rem;">{{ jobs_count }} jobs on map</span>
+                </div>
+            </div>
+
+            <!-- Pin Mode Instructions -->
+            <div id="pin-instructions" class="alert alert-info" style="display: none;">
+                <strong>Pin Mode Active:</strong> Click anywhere on the map to pin a job location.
+                <button id="cancel-pin" class="btn btn-sm btn-outline-danger ms-2">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div id="map" style="height: 600px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Details Panel (initially hidden) -->
+    <div class="row mt-4" id="job-details-panel" style="display: none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Job Details</h5>
+                </div>
+                <div class="card-body" id="job-details-content">
+                    <!-- Job details will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places"></script>
+
+<script>
+let map;
+let markers = [];
+let infoWindow;
+let pinMode = false;
+let userLocation = null;
+
+// Initialize the map
+function initMap() {
+    // Try to get user's current location first
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                initializeMapWithLocation(userLocation);
+            },
+            function(error) {
+                console.log('Geolocation error:', error);
+                // Fallback to default location
+                const defaultCenter = { lat: 40.7128, lng: -74.0060 }; // New York City
+                initializeMapWithLocation(defaultCenter);
+            }
+        );
+    } else {
+        // Fallback to default location
+        const defaultCenter = { lat: 40.7128, lng: -74.0060 }; // New York City
+        initializeMapWithLocation(defaultCenter);
+    }
+}
+
+function initializeMapWithLocation(center) {
+    map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 12,
+        center: center,
+        mapTypeId: 'roadmap'
+    });
+
+    infoWindow = new google.maps.InfoWindow();
+
+    // Add markers for all jobs
+    const jobMarkers = {{ job_markers|safe }};
+
+    jobMarkers.forEach(job => {
+        const marker = new google.maps.Marker({
+            position: { lat: job.lat, lng: job.lng },
+            map: map,
+            title: job.title,
+            icon: {
+                url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                scaledSize: new google.maps.Size(30, 30)
+            }
+        });
+
+        // Create info window content
+        const infoContent = `
+            <div class="job-marker-info">
+                <h6 class="mb-2">${job.title}</h6>
+                <p class="mb-1"><strong>Company:</strong> ${job.company}</p>
+                <p class="mb-1"><strong>Location:</strong> ${job.location}</p>
+                <p class="mb-1"><strong>Type:</strong> ${job.job_type} - ${job.remote_type}</p>
+                <p class="mb-1"><strong>Salary:</strong> ${job.salary}</p>
+                <p class="mb-2"><strong>Applications:</strong> ${job.applications_count}</p>
+                <div class="d-flex gap-2">
+                    <a href="${job.url}" class="btn btn-sm btn-primary">View Details</a>
+                    <a href="${job.url}edit/" class="btn btn-sm btn-outline-secondary">Edit Job</a>
+                    <button onclick="showJobDetails(${job.id})" class="btn btn-sm btn-outline-info">More Info</button>
+                </div>
+            </div>
+        `;
+
+        marker.addListener('click', () => {
+            infoWindow.setContent(infoContent);
+            infoWindow.open(map, marker);
+        });
+
+        markers.push(marker);
+    });
+
+    // Fit map to show all markers
+    if (jobMarkers.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        jobMarkers.forEach(job => {
+            bounds.extend(new google.maps.LatLng(job.lat, job.lng));
+        });
+        map.fitBounds(bounds);
+    }
+
+    // Add click listener for pin mode
+    map.addListener('click', function(event) {
+        if (pinMode) {
+            handleMapClick(event);
+        }
+    });
+}
+
+// Handle map click for pinning
+function handleMapClick(event) {
+    const lat = event.latLng.lat();
+    const lng = event.latLng.lng();
+
+    // Show job selection modal
+    showJobSelectionModal(lat, lng);
+}
+
+// Show job selection modal
+function showJobSelectionModal(lat, lng) {
+    // Get recruiter's jobs without coordinates
+    fetch('/jobs/jobs-without-coords/')
+        .then(response => response.json())
+        .then(data => {
+            const jobsWithoutCoords = data.jobs;
+
+            if (jobsWithoutCoords.length === 0) {
+                alert('No jobs available to pin. Create a job first!');
+                return;
+            }
+
+            // Create job selection dropdown
+            let options = '<option value="">Select a job to pin...</option>';
+            jobsWithoutCoords.forEach(job => {
+                options += `<option value="${job.id}">${job.title} at ${job.company}</option>`;
+            });
+
+            const modalHtml = `
+                <div class="modal fade" id="jobSelectionModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Pin Job Location</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Pin a job at coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+                                <div class="mb-3">
+                                    <label class="form-label">Select Job:</label>
+                                    <select id="jobSelect" class="form-select">
+                                        ${options}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Address (optional):</label>
+                                    <input type="text" id="addressInput" class="form-control" placeholder="Enter full address">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" onclick="saveJobLocation(${lat}, ${lng})">Pin Job</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Remove existing modal if any
+            const existingModal = document.getElementById('jobSelectionModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            // Add modal to page
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('jobSelectionModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error fetching jobs:', error);
+            alert('Error loading jobs. Please try again.');
+        });
+}
+
+// Save job location
+function saveJobLocation(lat, lng) {
+    const jobId = document.getElementById('jobSelect').value;
+    const address = document.getElementById('addressInput').value;
+
+    if (!jobId) {
+        alert('Please select a job to pin.');
+        return;
+    }
+
+    // Send request to save location
+    fetch('/jobs/save-location/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            job_id: jobId,
+            latitude: lat,
+            longitude: lng,
+            address: address
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Job location pinned successfully!');
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('jobSelectionModal'));
+            modal.hide();
+            // Reload page to show new marker
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error saving location:', error);
+        alert('Error saving location. Please try again.');
+    });
+}
+
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Show detailed job information
+function showJobDetails(jobId) {
+    const jobMarkers = {{ job_markers|safe }};
+    const job = jobMarkers.find(j => j.id === jobId);
+
+    if (job) {
+        const detailsContent = `
+            <div class="job-details">
+                <h4>${job.title}</h4>
+                <h5 class="text-muted">${job.company}</h5>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Location:</strong> ${job.location}</p>
+                        <p><strong>Job Type:</strong> ${job.job_type}</p>
+                        <p><strong>Remote Type:</strong> ${job.remote_type}</p>
+                        <p><strong>Applications:</strong> ${job.applications_count}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Salary:</strong> ${job.salary}</p>
+                        <p><strong>Coordinates:</strong> ${job.lat.toFixed(4)}, ${job.lng.toFixed(4)}</p>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a href="${job.url}" class="btn btn-primary">View Full Job Details</a>
+                    <a href="${job.url}edit/" class="btn btn-outline-secondary ms-2">Edit Job</a>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('job-details-content').innerHTML = detailsContent;
+        document.getElementById('job-details-panel').style.display = 'block';
+
+        // Scroll to details panel
+        document.getElementById('job-details-panel').scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Pin mode toggle
+document.getElementById('pin-mode-btn').addEventListener('click', function() {
+    pinMode = !pinMode;
+    const btn = document.getElementById('pin-mode-btn');
+    const instructions = document.getElementById('pin-instructions');
+
+    if (pinMode) {
+        btn.innerHTML = '<i class="fas fa-times"></i> Cancel Pin';
+        btn.className = 'btn btn-danger';
+        instructions.style.display = 'block';
+    } else {
+        btn.innerHTML = '<i class="fas fa-map-pin"></i> Pin Mode';
+        btn.className = 'btn btn-warning';
+        instructions.style.display = 'none';
+    }
+});
+
+// Cancel pin mode
+document.getElementById('cancel-pin').addEventListener('click', function() {
+    pinMode = false;
+    const btn = document.getElementById('pin-mode-btn');
+    const instructions = document.getElementById('pin-instructions');
+
+    btn.innerHTML = '<i class="fas fa-map-pin"></i> Pin Mode';
+    btn.className = 'btn btn-warning';
+    instructions.style.display = 'none';
+});
+
+// Initialize map when page loads
+google.maps.event.addDomListener(window, 'load', initMap);
+</script>
+
+<style>
+.job-marker-info {
+    min-width: 250px;
+}
+
+.job-marker-info h6 {
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.job-marker-info p {
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.job-details {
+    padding: 20px;
+}
+
+.job-details h4 {
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.job-details h5 {
+    margin-bottom: 20px;
+}
+
+#map {
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}
