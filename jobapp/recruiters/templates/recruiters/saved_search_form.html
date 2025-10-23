@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h3>{{ template_data.title }}</h3>
+  <form method="post">
+    {% csrf_token %}
+    <div class="row">
+      <div class="col-md-8">
+        {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+              <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% for error in field.errors %}
+              <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+        <button class="btn btn-primary" type="submit">Save</button>
+        <a href="{% url 'recruiters:saved_search_list' %}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock content %}

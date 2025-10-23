@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h3>Delete Saved Search</h3>
+  <p>Are you sure you want to delete "{{ saved.name }}"?</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-danger" type="submit">Yes, delete</button>
+    <a href="{% url 'recruiters:saved_search_list' %}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock content %}

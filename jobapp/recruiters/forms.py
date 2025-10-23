@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from .models import RecruiterProfile
+from .models import SavedSearch
 
 class RecruiterProfileForm(forms.ModelForm):
     """Form for recruiter profile management"""
@@ -133,4 +134,27 @@ class CandidateSearchForm(forms.Form):
             skill_list = [skill.strip() for skill in skills.split(',') if skill.strip()]
             return ', '.join(skill_list)
         return skills
+
+
+class SavedSearchForm(forms.ModelForm):
+    class Meta:
+        model = SavedSearch
+        fields = [
+            'name', 'keywords', 'skills', 'location', 'remote_preference',
+            'experience_years', 'education_level', 'willing_to_relocate',
+            'is_seeking_jobs', 'notification_frequency', 'is_active'
+        ]
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'keywords': forms.TextInput(attrs={'class': 'form-control'}),
+            'skills': forms.TextInput(attrs={'class': 'form-control'}),
+            'location': forms.TextInput(attrs={'class': 'form-control'}),
+            'remote_preference': forms.Select(attrs={'class': 'form-control'}),
+            'experience_years': forms.Select(attrs={'class': 'form-control'}),
+            'education_level': forms.Select(attrs={'class': 'form-control'}),
+            'willing_to_relocate': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_seeking_jobs': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'notification_frequency': forms.Select(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
 

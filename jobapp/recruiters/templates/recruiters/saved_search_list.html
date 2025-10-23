@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Saved Candidate Searches</h3>
+    <a href="{% url 'recruiters:saved_search_create' %}" class="btn btn-primary">Create New</a>
+  </div>
+  {% if searches %}
+    <div class="list-group">
+      {% for s in searches %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="mb-1">{{ s.name }} <small class="text-muted">({{ s.match_count }} matches)</small></h5>
+            <small class="text-muted">{{ s.keywords }} {{ s.skills }}</small>
+            <p class="mb-0">Frequency: {{ s.get_notification_frequency_display }} • Active: {{ s.is_active }}</p>
+          </div>
+          <div>
+            <a href="{% url 'recruiters:saved_search_edit' s.pk %}" class="btn btn-sm btn-outline-primary me-2">Edit</a>
+            <a href="{% url 'recruiters:saved_search_delete' s.pk %}" class="btn btn-sm btn-outline-danger me-2">Delete</a>
+            <a href="{% url 'recruiters:candidates' %}?keywords={{ s.keywords|urlencode }}&skills={{ s.skills|urlencode }}&location={{ s.location|urlencode }}{% if s.remote_preference %}&remote_preference={{ s.remote_preference }}{% endif %}{% if s.willing_to_relocate %}&willing_to_relocate=on{% endif %}{% if s.is_seeking_jobs %}&is_seeking_jobs=on{% endif %}{% if s.experience_years %}&experience_years={{ s.experience_years }}{% endif %}{% if s.education_level %}&education_level={{ s.education_level }}{% endif %}" class="btn btn-sm btn-outline-secondary">View Matches</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info">You have no saved searches yet.</div>
+  {% endif %}
+</div>
+{% endblock content %}
