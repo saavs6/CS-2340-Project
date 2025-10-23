@@ -29,6 +29,11 @@
                             <a href="{% url 'messaging:conversation_list' %}" class="btn btn-outline-secondary">
                                 <i class="fas fa-arrow-left"></i> Back to Messages
                             </a>
+                            {% if user_type == 'recruiter' and other_participant.email %}
+                            <a href="{% url 'messaging:email_candidate' conversation.id %}" class="btn btn-outline-primary ml-2">
+                                <i class="fas fa-envelope"></i> Email Candidate
+                            </a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

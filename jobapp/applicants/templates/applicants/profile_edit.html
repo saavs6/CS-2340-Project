@@ -45,6 +45,17 @@
                   {% endif %}
                 </div>
 
+                <div class="col-md-6 mb-3">
+                  <label for="{{ template_data.profile_form.email.id_for_label }}" class="form-label">
+                    {{ template_data.profile_form.email.label }}
+                  </label>
+                  {{ template_data.profile_form.email }}
+                  {% if template_data.profile_form.email.errors %}
+                    <div class="text-danger">{{ template_data.profile_form.email.errors }}</div>
+                  {% endif %}
+                  <small class="form-text text-muted">This is your contact email recruiters can reach you at.</small>
+                </div>
+
                 <div class="col-md-4 mb-3">
                   <label for="{{ template_data.profile_form.city.id_for_label }}" class="form-label">
                     {{ template_data.profile_form.city.label }}

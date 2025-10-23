@@ -1,8 +1,15 @@
 from django import forms
+from django.contrib.auth.models import User
 from .models import RecruiterProfile
 
 class RecruiterProfileForm(forms.ModelForm):
     """Form for recruiter profile management"""
+    email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'you@company.com'}),
+        label='Contact Email',
+        help_text='Used to contact candidates via email.'
+    )
     
     class Meta:
         model = RecruiterProfile
@@ -13,6 +20,21 @@ class RecruiterProfileForm(forms.ModelForm):
         widgets = {
             'company_description': forms.Textarea(attrs={'rows': 4}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pre-fill from bound instance's related user
+        if getattr(self.instance, 'user', None):
+            self.fields['email'].initial = self.instance.user.email
+
+    def save(self, commit=True):
+        profile = super().save(commit)
+        email = self.cleaned_data.get('email', '').strip()
+        if getattr(profile, 'user', None) is not None:
+            profile.user.email = email
+            if commit:
+                profile.user.save(update_fields=['email'])
+        return profile
 
 class CandidateSearchForm(forms.Form):
     """Form for searching candidates by various criteria"""

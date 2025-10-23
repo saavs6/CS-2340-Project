@@ -11,7 +11,9 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 
 from .models import Conversation, Message
-from .forms import NewConversationForm, MessageForm, ConversationSearchForm
+from .forms import NewConversationForm, MessageForm, ConversationSearchForm, EmailCandidateForm
+from django.conf import settings
+from django.core.mail import EmailMessage
 from accounts.models import UserProfile
 
 @login_required
@@ -239,3 +241,94 @@ def mark_conversation_read(request, conversation_id):
     conversation.mark_as_read(request.user)
     
     return JsonResponse({'success': True})
+
+
+@login_required
+def email_candidate(request, conversation_id):
+    """Allow a recruiter to email the applicant in a conversation."""
+    conversation = get_object_or_404(Conversation, id=conversation_id)
+
+    # Must be a participant
+    if request.user not in [conversation.recruiter, conversation.applicant]:
+        raise Http404("Conversation not found")
+
+    # Restrict to recruiters emailing applicants
+    if not hasattr(request.user, 'userprofile') or request.user.userprofile.user_type != 'recruiter':
+        django_messages.error(request, 'Only recruiters can email candidates from the platform.')
+        return redirect('messaging:conversation_detail', conversation_id=conversation.id)
+
+    candidate = conversation.applicant if conversation.recruiter == request.user else None
+    if candidate is None:
+        django_messages.error(request, 'You can only email the applicant in this conversation.')
+        return redirect('messaging:conversation_detail', conversation_id=conversation.id)
+
+    candidate_email = (candidate.email or '').strip()
+    if not candidate_email:
+        django_messages.error(request, 'This candidate does not have an email on their profile.')
+        return redirect('messaging:conversation_detail', conversation_id=conversation.id)
+
+    if request.method == 'POST':
+        form = EmailCandidateForm(request.POST)
+        if form.is_valid():
+            subject = form.cleaned_data['subject']
+            body = form.cleaned_data['body']
+
+            # Prefer recruiter's email if available; fallback to settings/default
+            from_email = (request.user.email or '').strip()
+            if not from_email:
+                from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@localhost')
+
+            try:
+                email = EmailMessage(
+                    subject=subject,
+                    body=body,
+                    from_email=from_email,
+                    to=[candidate_email],
+                )
+                email.send(fail_silently=False)
+                django_messages.success(request, 'Email sent to candidate successfully.')
+                return redirect('messaging:conversation_detail', conversation_id=conversation.id)
+            except Exception as e:
+                django_messages.error(request, f'Failed to send email: {e}')
+    else:
+        form = EmailCandidateForm(initial={
+            'to_email': candidate_email,
+            'subject': f"Regarding: {conversation.subject}",
+        })
+
+    context = {
+        'conversation': conversation,
+        'form': form,
+        'candidate': candidate,
+        'candidate_email': candidate_email,
+    }
+    return render(request, 'messages/email_candidate.html', context)
+
+
+@login_required
+def start_email_to_user(request, user_id):
+    """Ensure a recruiter->applicant conversation exists, then open email compose."""
+    target_user = get_object_or_404(User, id=user_id)
+
+    if not hasattr(request.user, 'userprofile') or request.user.userprofile.user_type != 'recruiter':
+        django_messages.error(request, 'Only recruiters can email candidates from the platform.')
+        return redirect('home:index')
+
+    if not hasattr(target_user, 'userprofile') or target_user.userprofile.user_type != 'applicant':
+        django_messages.error(request, 'You can only email applicants.')
+        return redirect('home:index')
+
+    if not (target_user.email or '').strip():
+        django_messages.error(request, 'This candidate does not have an email on their profile.')
+        return redirect('recruiters:candidates')
+
+    # Find or create conversation
+    conversation = Conversation.objects.filter(recruiter=request.user, applicant=target_user).first()
+    if not conversation:
+        conversation = Conversation.objects.create(
+            recruiter=request.user,
+            applicant=target_user,
+            subject=f"Conversation with {target_user.username}"
+        )
+
+    return redirect('messaging:email_candidate', conversation_id=conversation.id)

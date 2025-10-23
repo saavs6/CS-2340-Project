@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Email Candidate{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0"><i class="fas fa-envelope"></i> Email Candidate</h4>
+                        <a href="{% url 'messaging:conversation_detail' conversation.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Conversation
+                        </a>
+                    </div>
+
+                    <p class="text-muted mb-4">
+                        To: <strong>{{ candidate.username }}</strong> &lt;{{ candidate_email }}&gt;
+                    </p>
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        <div class="form-group mb-3">
+                            <label for="id_to_email">To</label>
+                            {{ form.to_email }}
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="id_subject">Subject</label>
+                            {{ form.subject }}
+                        </div>
+                        <div class="form-group mb-4">
+                            <label for="id_body">Message</label>
+                            {{ form.body }}
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <a href="{% url 'messaging:conversation_detail' conversation.id %}" class="btn btn-light mr-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Send Email
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-10 col-lg-8 mx-auto">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                Emails are sent via the platform's email settings. In development, they may appear in the console/log instead of actually sending.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

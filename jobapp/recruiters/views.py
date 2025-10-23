@@ -217,11 +217,75 @@ def job_applications(request, job_id):
         'user_type': 'recruiter'
     }
 
+    # Candidate recommendations (from applied candidates only)
+    # Build sets of normalized skills from job
+    def normalize_skills(skills_list):
+        return set([s.strip().lower() for s in skills_list if s and s.strip()])
+
+    required = normalize_skills(job.get_required_skills_list())
+    preferred = normalize_skills(job.get_preferred_skills_list())
+
+    recommendations = []
+
+    def remote_bonus(job_remote, applicant_pref):
+        mapping = {
+            'remote': {'remote_only': 2, 'hybrid': 1, 'flexible': 1, 'onsite_only': 0},
+            'hybrid': {'hybrid': 2, 'flexible': 1, 'remote_only': 1, 'onsite_only': 1},
+            'onsite': {'onsite_only': 2, 'hybrid': 1, 'flexible': 1, 'remote_only': -3},
+        }
+        return mapping.get(job_remote, {}).get(applicant_pref, 0)
+
+    # Score only candidates who applied to this job
+    applied_applications = applications.select_related('applicant')
+    for app in applied_applications:
+        # Get applicant profile; skip if not found
+        try:
+            profile = app.applicant.applicant_profile
+        except ApplicantProfile.DoesNotExist:
+            continue
+
+        # Normalize applicant skills
+        applicant_skills = set()
+        if profile.skills:
+            applicant_skills = set([s.strip().lower() for s in profile.skills.split(',') if s.strip()])
+
+        matched_required = required & applicant_skills
+        matched_preferred = preferred & applicant_skills
+
+        # Base skill score
+        score = len(matched_required) * 3 + len(matched_preferred)
+
+        # Location bonus
+        if profile.city and profile.state:
+            if profile.city.strip().lower() == job.city.strip().lower() and profile.state.strip().lower() == job.state.strip().lower():
+                score += 2
+            elif profile.state.strip().lower() == job.state.strip().lower():
+                score += 1
+
+        # Remote preference bonus/penalty
+        score += remote_bonus(job.remote_type, profile.remote_work_preference)
+
+        # If no skills match at all, down-rank significantly
+        if not matched_required and not matched_preferred:
+            score -= 2
+
+        recommendations.append({
+            'profile': profile,
+            'score': score,
+            'matched_required': sorted(matched_required),
+            'matched_preferred': sorted(matched_preferred),
+        })
+
+    # Sort and limit
+    recommendations.sort(key=lambda x: x['score'], reverse=True)
+    recommended_candidates = [r for r in recommendations if r['score'] > 0][:8]
+
     return render(request, 'recruiters/job_applications.html', {
         'template_data': template_data,
         'job': job,
         'kanban_columns': kanban_columns,
-        'applications': applications
+        'applications': applications,
+        'recommended_candidates': recommended_candidates,
     })
 
 @recruiter_required

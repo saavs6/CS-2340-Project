@@ -275,4 +275,72 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<!-- Recommended Candidates -->
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-user-check"></i> Recommended Candidates</h5>
+                    <small class="text-muted">Based on skills, location, and work preference</small>
+                </div>
+                <div class="card-body">
+                    {% if recommended_candidates %}
+                        <div class="row">
+                            {% for rec in recommended_candidates %}
+                                {% with profile=rec.profile %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="d-flex align-items-start">
+                                            <div class="avatar-circle me-3">
+                                                {{ profile.user.get_full_name|default:profile.user.username|first|upper }}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">
+                                                    <a href="{% url 'recruiters:candidate_detail' profile.id %}" class="text-decoration-none">{{ profile.user.get_full_name|default:profile.user.username }}</a>
+                                                </h6>
+                                                {% if profile.headline %}
+                                                    <div class="text-muted small mb-1">{{ profile.headline }}</div>
+                                                {% endif %}
+                                                {% if profile.get_short_location %}
+                                                    <div class="text-muted small"><i class="fas fa-map-marker-alt"></i> {{ profile.get_full_location }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <span class="badge bg-primary ms-2">Score {{ rec.score }}</span>
+                                        </div>
+                                        <div class="mt-2">
+                                            {% if rec.matched_required or rec.matched_preferred %}
+                                                <div class="small text-muted mb-1">Matching skills:</div>
+                                                {% for s in rec.matched_required %}
+                                                    <span class="badge bg-success me-1 mb-1">{{ s }}</span>
+                                                {% endfor %}
+                                                {% for s in rec.matched_preferred %}
+                                                    <span class="badge bg-info text-dark me-1 mb-1">{{ s }}</span>
+                                                {% endfor %}
+                                            {% else %}
+                                                <div class="small text-muted fst-italic">No direct skill matches, but profile may still be relevant.</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="d-flex justify-content-end gap-2 mt-3">
+                                            <a href="{% url 'recruiters:candidate_detail' profile.id %}" class="btn btn-sm btn-outline-secondary">View Profile</a>
+                                            <a href="{% url 'messaging:start_conversation_with_user' profile.user.id %}" class="btn btn-sm btn-success">Message</a>
+                                            <a href="{% url 'messaging:start_email_to_user' profile.user.id %}" class="btn btn-sm btn-primary">Email</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endwith %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-user-slash fa-2x mb-2"></i>
+                            <div>No recommendations yet. Try adding required or preferred skills to the job posting.</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

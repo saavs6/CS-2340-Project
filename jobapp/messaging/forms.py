@@ -95,3 +95,26 @@ class ConversationSearchForm(forms.Form):
     def clean_search(self):
         search = self.cleaned_data.get('search')
         return search.strip() if search else ''
+
+
+class EmailCandidateForm(forms.Form):
+    """Form for emailing a candidate from a conversation"""
+
+    to_email = forms.EmailField(
+        disabled=True,
+        required=False,
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'readonly': 'readonly'})
+    )
+    subject = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Subject'})
+    )
+    body = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 8, 'placeholder': 'Write your email message here...'})
+    )
+
+    def clean_body(self):
+        body = self.cleaned_data.get('body', '')
+        if not body.strip():
+            raise forms.ValidationError("Email body cannot be empty.")
+        return body.strip()

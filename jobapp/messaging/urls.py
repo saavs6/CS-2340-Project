@@ -7,8 +7,10 @@ urlpatterns = [
     path('', views.conversation_list, name='conversation_list'),
     path('new/', views.new_conversation, name='new_conversation'),
     path('start/<int:user_id>/', views.start_conversation_with_user, name='start_conversation_with_user'),
+    path('email/start/<int:user_id>/', views.start_email_to_user, name='start_email_to_user'),
     path('<int:conversation_id>/', views.conversation_detail, name='conversation_detail'),
     path('<int:conversation_id>/send/', views.send_message, name='send_message'),
+    path('<int:conversation_id>/email/', views.email_candidate, name='email_candidate'),
     path('<int:conversation_id>/mark-read/', views.mark_conversation_read, name='mark_conversation_read'),
     path('api/unread-count/', views.get_unread_count, name='unread_count'),
 ]
