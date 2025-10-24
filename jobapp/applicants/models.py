@@ -205,3 +205,44 @@ class WorkExperienceAdmin(admin.ModelAdmin):
     list_display = ['applicant', 'company', 'position', 'start_date', 'end_date', 'is_current']
     list_filter = ['is_current']
     search_fields = ['company', 'position', 'applicant__user__username']
+
+
+# Signals to regenerate recommendations when applicant profile skills change
+from django.db.models.signals import pre_save, post_save
+from django.dispatch import receiver
+
+
+@receiver(pre_save, sender=ApplicantProfile)
+def _applicantprofile_pre_save(sender, instance, **kwargs):
+    """Cache previous skills so post-save can detect changes."""
+    if instance.pk:
+        try:
+            old = ApplicantProfile.objects.get(pk=instance.pk)
+            instance._old_skills = old.skills
+        except ApplicantProfile.DoesNotExist:
+            instance._old_skills = None
+    else:
+        instance._old_skills = None
+
+
+@receiver(post_save, sender=ApplicantProfile)
+def _applicantprofile_post_save(sender, instance, created, **kwargs):
+    """Regenerate recommendations when profile is created or skills changed.
+
+    This calls into the jobs.recommendations helper. Exceptions are swallowed
+    to avoid disrupting normal profile saves.
+    """
+    # import lazily to avoid import cycles during module import
+    try:
+        from jobs.recommendations import generate_recommendations_for_user
+    except Exception:
+        return
+
+    old_skills = getattr(instance, '_old_skills', None)
+    # run when created, or when skills changed (also handle case where skills was empty and now filled)
+    if created or (old_skills != instance.skills):
+        try:
+            generate_recommendations_for_user(instance.user)
+        except Exception:
+            # intentionally ignore errors to keep profile save stable
+            pass
