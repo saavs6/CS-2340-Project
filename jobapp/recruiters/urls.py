@@ -18,4 +18,5 @@ urlpatterns = [
     path('saved-searches/create/', views.saved_search_create, name='saved_search_create'),
     path('saved-searches/<int:pk>/edit/', views.saved_search_edit, name='saved_search_edit'),
     path('saved-searches/<int:pk>/delete/', views.saved_search_delete, name='saved_search_delete'),
+    path('saved-searches/<int:pk>/', views.saved_search_detail, name='saved_search_detail'),
 ]

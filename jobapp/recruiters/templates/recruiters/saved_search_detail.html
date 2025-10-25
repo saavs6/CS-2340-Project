@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h1>{{ saved.name }}</h1>
+  <p class="text-muted">Showing candidates matching your saved search criteria.</p>
+  {% if candidates %}
+    <ul class="list-group mb-4">
+      {% for candidate in candidates %}
+        <li class="list-group-item">
+          <strong>{{ candidate.user.get_full_name|default:candidate.user.username }}</strong>
+          <br>
+          <span>{{ candidate.headline }}</span>
+          <br>
+          <span>{{ candidate.location }}</span>
+          <br>
+          <span>Skills: {{ candidate.skills }}</span>
+          <br>
+          <a href="{% url 'recruiters:candidate_detail' candidate.pk %}" class="btn btn-sm btn-primary mt-2">View Profile</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted">No candidates currently match this search.</p>
+  {% endif %}
+  <a href="{% url 'recruiters:saved_search_list' %}" class="btn btn-secondary">Back to Saved Searches</a>
+</div>
+{% endblock content %}

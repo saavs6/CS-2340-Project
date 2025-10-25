@@ -17,7 +17,7 @@
           <div>
             <a href="{% url 'recruiters:saved_search_edit' s.pk %}" class="btn btn-sm btn-outline-primary me-2">Edit</a>
             <a href="{% url 'recruiters:saved_search_delete' s.pk %}" class="btn btn-sm btn-outline-danger me-2">Delete</a>
-            <a href="{% url 'recruiters:candidates' %}?keywords={{ s.keywords|urlencode }}&skills={{ s.skills|urlencode }}&location={{ s.location|urlencode }}{% if s.remote_preference %}&remote_preference={{ s.remote_preference }}{% endif %}{% if s.willing_to_relocate %}&willing_to_relocate=on{% endif %}{% if s.is_seeking_jobs %}&is_seeking_jobs=on{% endif %}{% if s.experience_years %}&experience_years={{ s.experience_years }}{% endif %}{% if s.education_level %}&education_level={{ s.education_level }}{% endif %}" class="btn btn-sm btn-outline-secondary">View Matches</a>
+            <a href="{% url 'recruiters:saved_search_detail' s.pk %}" class="btn btn-info btn-sm">View Matches</a>
           </div>
         </div>
       {% endfor %}

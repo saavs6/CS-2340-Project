@@ -456,3 +456,39 @@ def saved_search_delete(request, pk):
         return redirect('recruiters:saved_search_list')
     template_data = {'title': 'Delete Saved Search', 'user_type': 'recruiter'}
     return render(request, 'recruiters/saved_search_confirm_delete.html', {'template_data': template_data, 'saved': saved})
+
+@recruiter_required
+def saved_search_detail(request, pk):
+    saved = get_object_or_404(SavedSearch, pk=pk, recruiter=request.user)
+    qs = ApplicantProfile.objects.filter(is_public=True)
+    if saved.keywords:
+        kw = saved.keywords.strip()
+        qs = qs.filter(
+            Q(user__first_name__icontains=kw) |
+            Q(user__last_name__icontains=kw) |
+            Q(user__username__icontains=kw) |
+            Q(headline__icontains=kw) |
+            Q(summary__icontains=kw)
+        )
+    if saved.skills:
+        for skill in [sk.strip() for sk in saved.skills.split(',') if sk.strip()]:
+            qs = qs.filter(skills__icontains=skill)
+    if saved.location:
+        loc = saved.location.strip()
+        qs = qs.filter(
+            Q(city__icontains=loc) | Q(state__icontains=loc) | Q(country__icontains=loc) | Q(location__icontains=loc)
+        )
+    if saved.remote_preference:
+        qs = qs.filter(remote_work_preference=saved.remote_preference)
+    if saved.willing_to_relocate:
+        qs = qs.filter(willing_to_relocate=True)
+    if saved.is_seeking_jobs:
+        qs = qs.filter(is_seeking_jobs=True)
+    if saved.education_level:
+        if saved.education_level == 'high_school':
+            qs = qs.filter(education__isnull=True)
+        else:
+            qs = qs.filter(education__degree__icontains=saved.education_level)
+    candidates = qs.order_by('-updated_at')
+    template_data = {'title': f'Saved Search: {saved.name}', 'user_type': 'recruiter'}
+    return render(request, 'recruiters/saved_search_detail.html', {'template_data': template_data, 'saved': saved, 'candidates': candidates})
