@@ -179,8 +179,9 @@ def profile(request):
     try:
         profile = request.user.recruiter_profile
     except RecruiterProfile.DoesNotExist:
-        # Create profile if it doesn't exist
-        profile = RecruiterProfile.objects.create(user=request.user)
+        # Create profile if it doesn't exist. Provide a minimal company_name so the
+        # DB CharField (which is not nullable) has a value (empty string is fine).
+        profile = RecruiterProfile.objects.create(user=request.user, company_name='')
 
     if request.method == 'POST':
         form = RecruiterProfileForm(request.POST, instance=profile)
@@ -194,10 +195,11 @@ def profile(request):
     template_data = {
         'title': 'Company Profile',
         'user_type': 'recruiter',
-        'form': form
     }
+    # Pass form explicitly to the template (template expects `form` at top-level)
     return render(request, 'recruiters/profile.html', {
-        'template_data': template_data
+        'template_data': template_data,
+        'form': form,
     })
 
 @recruiter_required

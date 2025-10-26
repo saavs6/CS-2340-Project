@@ -50,10 +50,11 @@
                 <a class="nav-link" href="{% url 'applicants:profile' %}">My Profile</a>
               {% elif template_data.user_type == 'recruiter' %}
                 <a class="nav-link" href="{% url 'recruiters:dashboard' %}">Dashboard</a>
-                <a class="nav-link" href="{% url 'jobs:create' %}">Post Job</a>
                 <a class="nav-link" href="{% url 'jobs:recruiter_jobs' %}">My Jobs</a>
+                <a class="nav-link" href="{% url 'recruiters:candidates' %}">Find Candidates</a>
+                <a class="nav-link" href="{% url 'recruiters:profile' %}">Company Profile</a>
               {% endif %}
-              
+
               <!-- Messages link for all authenticated users -->
               <a class="nav-link" href="{% url 'messaging:conversation_list' %}">
                 <i class="fas fa-comments"></i> Messages
@@ -137,7 +138,7 @@
       </div>
     </section>
     <!-- Footer -->
-    
+
     <!-- Unread messages count script -->
     {% if user.is_authenticated %}
     <script>

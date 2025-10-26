@@ -11,7 +11,7 @@ class RecruiterProfileForm(forms.ModelForm):
         label='Contact Email',
         help_text='Used to contact candidates via email.'
     )
-    
+
     class Meta:
         model = RecruiterProfile
         fields = [
@@ -28,6 +28,23 @@ class RecruiterProfileForm(forms.ModelForm):
         if getattr(self.instance, 'user', None):
             self.fields['email'].initial = self.instance.user.email
 
+        # Ensure consistent Bootstrap styling across all fields (match email)
+        for name, field in self.fields.items():
+            # Skip email since it's already configured explicitly above
+            if name == 'email':
+                continue
+
+            widget = field.widget
+            # For checkbox-like widgets use form-check-input, otherwise form-control
+            from django.forms import CheckboxInput
+            if isinstance(widget, CheckboxInput):
+                existing = widget.attrs.get('class', '')
+                if 'form-check-input' not in existing:
+                    widget.attrs['class'] = (existing + ' form-check-input').strip()
+            else:
+                existing = widget.attrs.get('class', '')
+                if 'form-control' not in existing:
+                    widget.attrs['class'] = (existing + ' form-control').strip()
     def save(self, commit=True):
         profile = super().save(commit)
         email = self.cleaned_data.get('email', '').strip()
@@ -39,7 +56,7 @@ class RecruiterProfileForm(forms.ModelForm):
 
 class CandidateSearchForm(forms.Form):
     """Form for searching candidates by various criteria"""
-    
+
     # Keywords search
     keywords = forms.CharField(
         max_length=200,
@@ -50,7 +67,7 @@ class CandidateSearchForm(forms.Form):
         }),
         help_text="Search by candidate name, headline, or professional summary"
     )
-    
+
     # Skills search
     skills = forms.CharField(
         max_length=500,
@@ -61,7 +78,7 @@ class CandidateSearchForm(forms.Form):
         }),
         help_text="Enter skills separated by commas"
     )
-    
+
     # Location search
     location = forms.CharField(
         max_length=200,
@@ -72,7 +89,7 @@ class CandidateSearchForm(forms.Form):
         }),
         help_text="Search by location"
     )
-    
+
     # Remote work preference
     remote_preference = forms.ChoiceField(
         choices=[
@@ -85,20 +102,20 @@ class CandidateSearchForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-    
+
     # Willing to relocate
     willing_to_relocate = forms.BooleanField(
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
-    
+
     # Currently seeking jobs
     is_seeking_jobs = forms.BooleanField(
         required=False,
         initial=True,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
-    
+
     # Experience level (based on work experience)
     experience_years = forms.ChoiceField(
         choices=[
@@ -111,7 +128,7 @@ class CandidateSearchForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-    
+
     # Education level
     education_level = forms.ChoiceField(
         choices=[
@@ -125,7 +142,7 @@ class CandidateSearchForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-    
+
     def clean_skills(self):
         """Clean and validate skills input"""
         skills = self.cleaned_data.get('skills', '')
