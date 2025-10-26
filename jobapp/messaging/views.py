@@ -19,13 +19,13 @@ from accounts.models import UserProfile
 @login_required
 def conversation_list(request):
     """Display list of conversations for the logged-in user"""
-    
+
     # Get user's conversations
     if request.user.userprofile.user_type == 'recruiter':
         conversations = Conversation.objects.filter(recruiter=request.user)
     else:
         conversations = Conversation.objects.filter(applicant=request.user)
-    
+
     # Search functionality
     search_form = ConversationSearchForm(request.GET)
     if search_form.is_valid() and search_form.cleaned_data['search']:
@@ -35,10 +35,10 @@ def conversation_list(request):
             Q(recruiter__username__icontains=search_term) |
             Q(applicant__username__icontains=search_term)
         )
-    
+
     # Order by last message time
     conversations = conversations.order_by('-last_message_at', '-created_at')
-    
+
     # Add additional data to each conversation for template
     conversations_with_data = []
     for conversation in conversations:
@@ -49,63 +49,71 @@ def conversation_list(request):
             'latest_message': conversation.get_latest_message(),
         }
         conversations_with_data.append(conversation_data)
-    
+
     # Pagination
     paginator = Paginator(conversations_with_data, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     context = {
         'page_obj': page_obj,
         'search_form': search_form,
         'user_type': request.user.userprofile.user_type,
+        'template_data': {
+            'title': 'Messages',
+            'user_type': request.user.userprofile.user_type,
+        },
     }
-    
+
     return render(request, 'messages/conversation_list.html', context)
 
 @login_required
 def conversation_detail(request, conversation_id):
     """Display conversation details and messages"""
-    
+
     conversation = get_object_or_404(Conversation, id=conversation_id)
-    
+
     # Security check: user must be a participant
     if request.user not in [conversation.recruiter, conversation.applicant]:
         raise Http404("Conversation not found")
-    
+
     # Mark messages as read
     conversation.mark_as_read(request.user)
-    
+
     # Get messages
     message_list = conversation.messages.all()
-    
+
     # Pagination for messages
     paginator = Paginator(message_list, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     # Message form
     message_form = MessageForm()
-    
+
     context = {
         'conversation': conversation,
         'page_obj': page_obj,
         'message_form': message_form,
         'other_participant': conversation.get_other_participant(request.user),
         'user_type': request.user.userprofile.user_type,
+        'template_data': {
+            'title': f'Messages - {conversation.subject}',
+            'user_type': request.user.userprofile.user_type,
+        },
     }
-    
+
     return render(request, 'messages/conversation_detail.html', context)
 
 @login_required
 def new_conversation(request):
     """Start a new conversation"""
-    
+
     if request.method == 'POST':
         form = NewConversationForm(request.POST, user=request.user)
         if form.is_valid():
             recipient = form.cleaned_data['recipient']
-            
+
             # Create conversation with proper recruiter/applicant assignment
             if request.user.userprofile.user_type == 'recruiter':
                 conversation = Conversation.objects.create(
@@ -119,35 +127,39 @@ def new_conversation(request):
                     applicant=request.user,
                     subject=form.cleaned_data['subject']
                 )
-            
+
             django_messages.success(request, 'Conversation started successfully!')
             return redirect('messaging:conversation_detail', conversation_id=conversation.id)
     else:
         form = NewConversationForm(user=request.user)
-    
+
     context = {
         'form': form,
         'user_type': request.user.userprofile.user_type,
+        'template_data': {
+            'title': 'New Conversation',
+            'user_type': request.user.userprofile.user_type,
+        },
     }
-    
+
     return render(request, 'messages/new_conversation.html', context)
 
 @login_required
 @require_http_methods(["POST"])
 def send_message(request, conversation_id):
     """Send a new message in a conversation"""
-    
+
     conversation = get_object_or_404(Conversation, id=conversation_id)
-    
+
     # Security check: user must be a participant
     if request.user not in [conversation.recruiter, conversation.applicant]:
         return JsonResponse({'error': 'Unauthorized'}, status=403)
-    
+
     form = MessageForm(request.POST)
     if form.is_valid():
         # Determine recipient
         recipient = conversation.get_other_participant(request.user)
-        
+
         # Create message
         message = Message.objects.create(
             conversation=conversation,
@@ -155,7 +167,7 @@ def send_message(request, conversation_id):
             recipient=recipient,
             content=form.cleaned_data['content']
         )
-        
+
         # Return success response
         return JsonResponse({
             'success': True,
@@ -164,23 +176,23 @@ def send_message(request, conversation_id):
             'sender': message.sender.username,
             'created_at': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
         })
-    
+
     return JsonResponse({'error': 'Invalid form data'}, status=400)
 
 @login_required
 def start_conversation_with_user(request, user_id):
     """Start a conversation with a specific user (from their profile)"""
-    
+
     target_user = get_object_or_404(User, id=user_id)
-    
+
     # Security check: can only message users of different type
     if not hasattr(target_user, 'userprofile'):
         raise Http404("User profile not found")
-    
+
     if request.user.userprofile.user_type == target_user.userprofile.user_type:
         django_messages.error(request, "You can only message users of a different type.")
         return redirect('home:index')
-    
+
     # Check if conversation already exists
     if request.user.userprofile.user_type == 'recruiter':
         existing_conversation = Conversation.objects.filter(
@@ -192,10 +204,10 @@ def start_conversation_with_user(request, user_id):
             recruiter=target_user,
             applicant=request.user
         ).first()
-    
+
     if existing_conversation:
         return redirect('messaging:conversation_detail', conversation_id=existing_conversation.id)
-    
+
     # Create new conversation
     if request.user.userprofile.user_type == 'recruiter':
         conversation = Conversation.objects.create(
@@ -209,37 +221,37 @@ def start_conversation_with_user(request, user_id):
             applicant=request.user,
             subject=f"Conversation with {target_user.username}"
         )
-    
+
     django_messages.success(request, f'Started conversation with {target_user.username}')
     return redirect('messaging:conversation_detail', conversation_id=conversation.id)
 
 @login_required
 def get_unread_count(request):
     """API endpoint to get unread message count"""
-    
+
     if request.user.userprofile.user_type == 'recruiter':
         conversations = Conversation.objects.filter(recruiter=request.user)
     else:
         conversations = Conversation.objects.filter(applicant=request.user)
-    
+
     total_unread = 0
     for conversation in conversations:
         total_unread += conversation.get_unread_count(request.user)
-    
+
     return JsonResponse({'unread_count': total_unread})
 
 @login_required
 def mark_conversation_read(request, conversation_id):
     """Mark all messages in a conversation as read"""
-    
+
     conversation = get_object_or_404(Conversation, id=conversation_id)
-    
+
     # Security check: user must be a participant
     if request.user not in [conversation.recruiter, conversation.applicant]:
         return JsonResponse({'error': 'Unauthorized'}, status=403)
-    
+
     conversation.mark_as_read(request.user)
-    
+
     return JsonResponse({'success': True})
 
 
@@ -274,19 +286,36 @@ def email_candidate(request, conversation_id):
             body = form.cleaned_data['body']
 
             # Prefer recruiter's email if available; fallback to settings/default
-            from_email = (request.user.email or '').strip()
-            if not from_email:
-                from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@localhost')
+            #from_email = (request.user.email or '').strip()
+            #if not from_email:
+            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@localhost')
 
             try:
+                # Prepend recruiter name and company to the message body for context
+                recruiter_name = (request.user.get_full_name() or request.user.username).strip()
+                company_name = ''
+                try:
+                    company_name = (request.user.recruiter_profile.company_name or '').strip()
+                except Exception:
+                    company_name = ''
+
+                if company_name:
+                    header = f"Message from {recruiter_name} at {company_name}\n\n"
+                else:
+                    header = f"Message from {recruiter_name}\n\n"
+
+                new_body = header + body
+
                 email = EmailMessage(
                     subject=subject,
-                    body=body,
+                    body=new_body,
                     from_email=from_email,
                     to=[candidate_email],
                 )
                 email.send(fail_silently=False)
                 django_messages.success(request, 'Email sent to candidate successfully.')
+                print(new_body)
+                print('Email sent to candidate successfully.')
                 return redirect('messaging:conversation_detail', conversation_id=conversation.id)
             except Exception as e:
                 django_messages.error(request, f'Failed to send email: {e}')
@@ -302,6 +331,13 @@ def email_candidate(request, conversation_id):
         'candidate': candidate,
         'candidate_email': candidate_email,
     }
+    # include template_data for base.html navbar
+    context.update({
+        'template_data': {
+            'title': f'Email Candidate - {conversation.subject}',
+            'user_type': request.user.userprofile.user_type,
+        }
+    })
     return render(request, 'messages/email_candidate.html', context)
 
 
