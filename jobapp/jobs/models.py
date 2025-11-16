@@ -74,6 +74,13 @@ class Job(models.Model):
 
     # Status and Timestamps
     is_active = models.BooleanField(default=True)
+    MODERATION_STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    moderation_status = models.CharField(max_length=20, choices=MODERATION_STATUS_CHOICES, default='pending', help_text='Moderation status for admin review')
+    moderation_reason = models.TextField(blank=True, help_text='Optional reason provided by moderator when rejecting')
     application_deadline = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

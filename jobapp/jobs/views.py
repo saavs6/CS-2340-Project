@@ -17,7 +17,15 @@ import json
 def job_list(request):
     """Public job listing with search functionality"""
     form = JobSearchForm(request.GET or None)
-    jobs = Job.objects.filter(is_active=True)
+    
+    # Determine if user is admin
+    is_admin = request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+    
+    # Admins can see all jobs; regular users see only approved jobs
+    if is_admin:
+        jobs = Job.objects.filter(is_active=True)
+    else:
+        jobs = Job.objects.filter(is_active=True, moderation_status='approved')
 
     # Process search filters from GET parameters directly
     # This handles cases where form validation might fail due to format issues
@@ -85,10 +93,22 @@ def job_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # Get user type safely
+    user_type = None
+    if request.user.is_authenticated:
+        if is_admin:
+            user_type = 'admin'
+        else:
+            try:
+                user_type = request.user.userprofile.user_type
+            except:
+                user_type = None
+
     context = {
         'template_data': {
             'title': 'Find Jobs',
-            'user_type': getattr(request.user.userprofile, 'user_type', None) if request.user.is_authenticated else None
+            'user_type': user_type,
+            'is_admin': is_admin
         },
         'form': form,
         'page_obj': page_obj,
@@ -99,23 +119,36 @@ def job_list(request):
 
 def job_detail(request, pk):
     """Job detail view"""
-    job = get_object_or_404(Job, pk=pk, is_active=True)
+    # Determine if user is admin
+    is_admin = request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+    
+    # Admins can see all jobs; regular users see only approved jobs
+    if is_admin:
+        job = get_object_or_404(Job, pk=pk, is_active=True)
+    else:
+        job = get_object_or_404(Job, pk=pk, is_active=True, moderation_status='approved')
 
     # Check if user has already applied (for applicants)
     has_applied = False
+    user_type = None
     if request.user.is_authenticated:
-        try:
-            if request.user.userprofile.user_type == 'applicant':
-                has_applied = JobApplication.objects.filter(
-                    job=job, applicant=request.user
-                ).exists()
-        except:
-            pass
+        if is_admin:
+            user_type = 'admin'
+        else:
+            try:
+                user_type = request.user.userprofile.user_type
+                if user_type == 'applicant':
+                    has_applied = JobApplication.objects.filter(
+                        job=job, applicant=request.user
+                    ).exists()
+            except:
+                user_type = None
 
     context = {
         'template_data': {
             'title': job.title,
-            'user_type': getattr(request.user.userprofile, 'user_type', None) if request.user.is_authenticated else None
+            'user_type': user_type,
+            'is_admin': is_admin
         },
         'job': job,
         'has_applied': has_applied
@@ -328,7 +361,14 @@ def application_withdraw(request, pk):
 # Map Views
 def job_map(request):
     """Display map with all job locations for job seekers"""
-    jobs = Job.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
+    # Determine if user is admin
+    is_admin = request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+    
+    # Admins can see all jobs; regular users see only approved jobs
+    if is_admin:
+        jobs = Job.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
+    else:
+        jobs = Job.objects.filter(is_active=True, moderation_status='approved', latitude__isnull=False, longitude__isnull=False)
 
     # Convert jobs to map markers
     job_markers = []
@@ -346,10 +386,22 @@ def job_map(request):
             'remote_type': job.get_remote_type_display(),
         })
 
+    # Get user type safely
+    user_type = None
+    if request.user.is_authenticated:
+        if is_admin:
+            user_type = 'admin'
+        else:
+            try:
+                user_type = request.user.userprofile.user_type
+            except:
+                user_type = None
+
     context = {
         'template_data': {
             'title': 'Job Map',
-            'user_type': getattr(request.user.userprofile, 'user_type', None) if request.user.is_authenticated else None
+            'user_type': user_type,
+            'is_admin': is_admin
         },
         'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
         'job_markers': job_markers,
@@ -412,13 +464,24 @@ def jobs_nearby_api(request):
     except ValueError:
         return JsonResponse({'error': 'Invalid coordinates or radius'}, status=400)
 
+    # Determine if user is admin
+    is_admin = request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+
     # Simple distance calculation (not perfect but works for small distances)
     # In production, you'd want to use PostGIS or similar for accurate distance calculations
-    jobs = Job.objects.filter(
-        is_active=True,
-        latitude__isnull=False,
-        longitude__isnull=False
-    )
+    if is_admin:
+        jobs = Job.objects.filter(
+            is_active=True,
+            latitude__isnull=False,
+            longitude__isnull=False
+        )
+    else:
+        jobs = Job.objects.filter(
+            is_active=True,
+            moderation_status='approved',
+            latitude__isnull=False,
+            longitude__isnull=False
+        )
 
     nearby_jobs = []
     for job in jobs:

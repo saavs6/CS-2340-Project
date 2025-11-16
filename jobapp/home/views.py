@@ -7,23 +7,33 @@ def index(request):
 
     # Check if user is logged in and has a profile
     if request.user.is_authenticated:
-        try:
-            profile = request.user.userprofile
-            template_data['user_type'] = profile.user_type
-            template_data['is_applicant'] = profile.user_type == 'applicant'
-            template_data['is_recruiter'] = profile.user_type == 'recruiter'
-
-            # Redirect recruiters to their dashboard
-            if profile.user_type == 'recruiter':
-                return redirect('recruiters:dashboard')
-        except:
-            template_data['user_type'] = None
+        # Check if admin/staff first
+        if request.user.is_staff or request.user.is_superuser:
+            template_data['user_type'] = 'admin'
             template_data['is_applicant'] = False
             template_data['is_recruiter'] = False
+            template_data['is_admin'] = True
+        else:
+            try:
+                profile = request.user.userprofile
+                template_data['user_type'] = profile.user_type
+                template_data['is_applicant'] = profile.user_type == 'applicant'
+                template_data['is_recruiter'] = profile.user_type == 'recruiter'
+                template_data['is_admin'] = False
+
+                # Redirect recruiters to their dashboard
+                if profile.user_type == 'recruiter':
+                    return redirect('recruiters:dashboard')
+            except:
+                template_data['user_type'] = None
+                template_data['is_applicant'] = False
+                template_data['is_recruiter'] = False
+                template_data['is_admin'] = False
     else:
         template_data['user_type'] = None
         template_data['is_applicant'] = False
         template_data['is_recruiter'] = False
+        template_data['is_admin'] = False
 
     return render(request, 'home/index.html', {
         'template_data': template_data})
@@ -33,19 +43,29 @@ def about(request):
 
     # Check if user is logged in and has a profile
     if request.user.is_authenticated:
-        try:
-            profile = request.user.userprofile
-            template_data['user_type'] = profile.user_type
-            template_data['is_applicant'] = profile.user_type == 'applicant'
-            template_data['is_recruiter'] = profile.user_type == 'recruiter'
-        except:
-            template_data['user_type'] = None
+        # Check if admin/staff first
+        if request.user.is_staff or request.user.is_superuser:
+            template_data['user_type'] = 'admin'
             template_data['is_applicant'] = False
             template_data['is_recruiter'] = False
+            template_data['is_admin'] = True
+        else:
+            try:
+                profile = request.user.userprofile
+                template_data['user_type'] = profile.user_type
+                template_data['is_applicant'] = profile.user_type == 'applicant'
+                template_data['is_recruiter'] = profile.user_type == 'recruiter'
+                template_data['is_admin'] = False
+            except:
+                template_data['user_type'] = None
+                template_data['is_applicant'] = False
+                template_data['is_recruiter'] = False
+                template_data['is_admin'] = False
     else:
         template_data['user_type'] = None
         template_data['is_applicant'] = False
         template_data['is_recruiter'] = False
+        template_data['is_admin'] = False
 
     return render(request,
                   'home/about.html',
