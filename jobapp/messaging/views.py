@@ -21,7 +21,13 @@ def conversation_list(request):
     """Display list of conversations for the logged-in user"""
 
     # Get user's conversations
-    if request.user.userprofile.user_type == 'recruiter':
+    try:
+        user_type = request.user.userprofile.user_type
+    except:
+        # Admin/staff users without a profile have no conversations
+        return render(request, 'messages/conversation_list.html', {'page_obj': [], 'search_form': None, 'template_data': {'title': 'Messages', 'user_type': None}})
+    
+    if user_type == 'recruiter':
         conversations = Conversation.objects.filter(recruiter=request.user)
     else:
         conversations = Conversation.objects.filter(applicant=request.user)
@@ -58,10 +64,10 @@ def conversation_list(request):
     context = {
         'page_obj': page_obj,
         'search_form': search_form,
-        'user_type': request.user.userprofile.user_type,
+        'user_type': user_type,
         'template_data': {
             'title': 'Messages',
-            'user_type': request.user.userprofile.user_type,
+            'user_type': user_type,
         },
     }
 
@@ -91,15 +97,20 @@ def conversation_detail(request, conversation_id):
     # Message form
     message_form = MessageForm()
 
+    try:
+        user_type = request.user.userprofile.user_type
+    except:
+        user_type = None
+
     context = {
         'conversation': conversation,
         'page_obj': page_obj,
         'message_form': message_form,
         'other_participant': conversation.get_other_participant(request.user),
-        'user_type': request.user.userprofile.user_type,
+        'user_type': user_type,
         'template_data': {
             'title': f'Messages - {conversation.subject}',
-            'user_type': request.user.userprofile.user_type,
+            'user_type': user_type,
         },
     }
 
@@ -109,13 +120,19 @@ def conversation_detail(request, conversation_id):
 def new_conversation(request):
     """Start a new conversation"""
 
+    try:
+        user_type = request.user.userprofile.user_type
+    except:
+        # Admin/staff users cannot send messages
+        return render(request, 'messages/new_conversation.html', {'form': None, 'user_type': None, 'template_data': {'title': 'New Conversation', 'user_type': None}})
+
     if request.method == 'POST':
         form = NewConversationForm(request.POST, user=request.user)
         if form.is_valid():
             recipient = form.cleaned_data['recipient']
 
             # Create conversation with proper recruiter/applicant assignment
-            if request.user.userprofile.user_type == 'recruiter':
+            if user_type == 'recruiter':
                 conversation = Conversation.objects.create(
                     recruiter=request.user,
                     applicant=recipient,
@@ -135,7 +152,7 @@ def new_conversation(request):
 
     context = {
         'form': form,
-        'user_type': request.user.userprofile.user_type,
+        'user_type': user_type,
         'template_data': {
             'title': 'New Conversation',
             'user_type': request.user.userprofile.user_type,
@@ -185,16 +202,29 @@ def start_conversation_with_user(request, user_id):
 
     target_user = get_object_or_404(User, id=user_id)
 
+    # Admin/staff users cannot message
+    try:
+        user_type = request.user.userprofile.user_type
+    except:
+        django_messages.error(request, "Admin users cannot send messages.")
+        return redirect('home:index')
+
     # Security check: can only message users of different type
     if not hasattr(target_user, 'userprofile'):
         raise Http404("User profile not found")
 
-    if request.user.userprofile.user_type == target_user.userprofile.user_type:
+    try:
+        target_user_type = target_user.userprofile.user_type
+    except:
+        django_messages.error(request, "You can only message applicants or recruiters.")
+        return redirect('home:index')
+
+    if user_type == target_user_type:
         django_messages.error(request, "You can only message users of a different type.")
         return redirect('home:index')
 
     # Check if conversation already exists
-    if request.user.userprofile.user_type == 'recruiter':
+    if user_type == 'recruiter':
         existing_conversation = Conversation.objects.filter(
             recruiter=request.user,
             applicant=target_user
@@ -209,7 +239,7 @@ def start_conversation_with_user(request, user_id):
         return redirect('messaging:conversation_detail', conversation_id=existing_conversation.id)
 
     # Create new conversation
-    if request.user.userprofile.user_type == 'recruiter':
+    if user_type == 'recruiter':
         conversation = Conversation.objects.create(
             recruiter=request.user,
             applicant=target_user,
@@ -229,7 +259,14 @@ def start_conversation_with_user(request, user_id):
 def get_unread_count(request):
     """API endpoint to get unread message count"""
 
-    if request.user.userprofile.user_type == 'recruiter':
+    # Check if user has a profile (admin/staff users may not)
+    try:
+        user_type = request.user.userprofile.user_type
+    except:
+        # Admin/staff users without a profile have no conversations
+        return JsonResponse({'unread_count': 0})
+
+    if user_type == 'recruiter':
         conversations = Conversation.objects.filter(recruiter=request.user)
     else:
         conversations = Conversation.objects.filter(applicant=request.user)
@@ -332,10 +369,15 @@ def email_candidate(request, conversation_id):
         'candidate_email': candidate_email,
     }
     # include template_data for base.html navbar
+    try:
+        user_type = request.user.userprofile.user_type
+    except:
+        user_type = None
+    
     context.update({
         'template_data': {
             'title': f'Email Candidate - {conversation.subject}',
-            'user_type': request.user.userprofile.user_type,
+            'user_type': user_type,
         }
     })
     return render(request, 'messages/email_candidate.html', context)

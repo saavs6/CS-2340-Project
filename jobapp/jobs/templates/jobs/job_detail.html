@@ -53,7 +53,20 @@
                 <div class="card-body">
                     <h5 class="card-title">Quick Actions</h5>
                     
-                    {% if user.is_authenticated %}
+                    {% if template_data.is_admin %}
+                        <div class="alert alert-info mb-3">
+                            <strong>Moderation Status:</strong>
+                            {% if job.moderation_status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                            {% elif job.moderation_status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% else %}
+                                <span class="badge bg-warning">Pending Review</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-muted small">Admin viewing: This job is not available for applications.</p>
+                        <a href="/admin/jobs/job/{{ job.pk }}/change/" class="btn btn-secondary w-100 mb-2">Edit in Admin</a>
+                    {% elif user.is_authenticated %}
                         {% if template_data.user_type == 'applicant' %}
                             {% if has_applied %}
                                 <button class="btn btn-success w-100 mb-2" disabled>Already Applied</button>
