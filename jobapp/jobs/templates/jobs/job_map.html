@@ -19,6 +19,34 @@
         </div>
     </div>
 
+    <!-- Filter controls -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card p-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <label class="form-label mb-0">Distance (miles)</label>
+                        <input id="distanceMiles" type="number" class="form-control" placeholder="e.g. 25" min="0">
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label mb-0">Commute Radius (miles)</label>
+                        <input id="commuteMiles" type="number" class="form-control" placeholder="e.g. 15" min="0">
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label mb-0"> </label>
+                        <div>
+                            <button id="applyFilterBtn" class="btn btn-primary">Apply Filter</button>
+                            <button id="resetFilterBtn" class="btn btn-outline-secondary">Reset</button>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <small class="text-muted">Jobs shown within the tighter of the two radii (miles). Uses your browser location.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12">
             <div class="card">
@@ -51,6 +79,8 @@
 let map;
 let markers = [];
 let infoWindow;
+let userLocation = null;
+let userMarker = null;
 
 // Initialize the map
 function initMap() {
@@ -58,7 +88,7 @@ function initMap() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             function(position) {
-                const userLocation = {
+                userLocation = {
                     lat: position.coords.latitude,
                     lng: position.coords.longitude
                 };
@@ -67,14 +97,14 @@ function initMap() {
             function(error) {
                 console.log('Geolocation error:', error);
                 // Fallback to default location
-                const defaultCenter = { lat: 40.7128, lng: -74.0060 }; // New York City
-                initializeMapWithLocation(defaultCenter);
+                userLocation = { lat: 40.7128, lng: -74.0060 }; // New York City
+                initializeMapWithLocation(userLocation);
             }
         );
     } else {
         // Fallback to default location
-        const defaultCenter = { lat: 40.7128, lng: -74.0060 }; // New York City
-        initializeMapWithLocation(defaultCenter);
+        userLocation = { lat: 40.7128, lng: -74.0060 }; // New York City
+        initializeMapWithLocation(userLocation);
     }
 }
 
@@ -87,10 +117,52 @@ function initializeMapWithLocation(center) {
 
     infoWindow = new google.maps.InfoWindow();
 
-    // Add markers for all jobs
-    const jobMarkers = {{ job_markers|safe }};
+    // Add a marker for the user's location so the map is centered and the user can see themselves
+    if (userLocation) {
+        userMarker = new google.maps.Marker({
+            position: { lat: userLocation.lat, lng: userLocation.lng },
+            map: map,
+            title: 'Your location',
+            icon: {
+                url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                scaledSize: new google.maps.Size(28, 28)
+            }
+        });
+    }
 
+    // Add initial markers from server data
+    const initialJobMarkers = {{ job_markers|safe }};
+    renderMarkers(initialJobMarkers);
+
+    // wire up filter buttons
+    document.getElementById('applyFilterBtn').addEventListener('click', function() {
+        applyRadiusFilter();
+    });
+    document.getElementById('resetFilterBtn').addEventListener('click', function() {
+        // Clear inputs and show initial markers
+        document.getElementById('distanceMiles').value = '';
+        document.getElementById('commuteMiles').value = '';
+        renderMarkers(initialJobMarkers);
+        if (initialJobMarkers.length > 0) {
+            const bounds = new google.maps.LatLngBounds();
+            initialJobMarkers.forEach(job => bounds.extend(new google.maps.LatLng(job.lat, job.lng)));
+            map.fitBounds(bounds);
+        }
+    });
+
+    // Fit map to show all markers
+    if (initialJobMarkers.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        initialJobMarkers.forEach(job => bounds.extend(new google.maps.LatLng(job.lat, job.lng)));
+        map.fitBounds(bounds);
+    }
+}
+
+// Render markers array (clears existing markers first)
+function renderMarkers(jobMarkers) {
+    clearMarkers();
     jobMarkers.forEach(job => {
+        if (job.lat == null || job.lng == null) return;
         const marker = new google.maps.Marker({
             position: { lat: job.lat, lng: job.lng },
             map: map,
@@ -101,7 +173,6 @@ function initializeMapWithLocation(center) {
             }
         });
 
-        // Create info window content
         const infoContent = `
             <div class="job-marker-info">
                 <h6 class="mb-2">${job.title}</h6>
@@ -123,15 +194,65 @@ function initializeMapWithLocation(center) {
 
         markers.push(marker);
     });
+}
 
-    // Fit map to show all markers
-    if (jobMarkers.length > 0) {
-        const bounds = new google.maps.LatLngBounds();
-        jobMarkers.forEach(job => {
-            bounds.extend(new google.maps.LatLng(job.lat, job.lng));
-        });
-        map.fitBounds(bounds);
+// Remove all markers from the map
+function clearMarkers() {
+    markers.forEach(m => m.setMap(null));
+    markers = [];
+}
+
+// Apply radius filter: convert miles -> km, pick the tighter radius, call the nearby API
+function applyRadiusFilter() {
+    const distanceMiles = parseFloat(document.getElementById('distanceMiles').value);
+    const commuteMiles = parseFloat(document.getElementById('commuteMiles').value);
+
+    let chosenMiles = null;
+    if (!isNaN(distanceMiles) && distanceMiles > 0 && !isNaN(commuteMiles) && commuteMiles > 0) {
+        chosenMiles = Math.min(distanceMiles, commuteMiles);
+    } else if (!isNaN(distanceMiles) && distanceMiles > 0) {
+        chosenMiles = distanceMiles;
+    } else if (!isNaN(commuteMiles) && commuteMiles > 0) {
+        chosenMiles = commuteMiles;
     }
+
+    if (chosenMiles == null) {
+        // No filter provided — show all markers
+        const initialJobMarkers = {{ job_markers|safe }};
+        renderMarkers(initialJobMarkers);
+        return;
+    }
+
+    // convert miles to km
+    const radiusKm = chosenMiles * 1.60934;
+
+    if (!userLocation) {
+        alert('Unable to get your location. Allow location access and try again.');
+        return;
+    }
+
+    // fetch nearby jobs
+    fetch(`/jobs/nearby/?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=${radiusKm}`)
+        .then(resp => resp.json())
+        .then(data => {
+            if (data.jobs) {
+                renderMarkers(data.jobs);
+                // fit to shown markers
+                if (data.jobs.length > 0) {
+                    const bounds = new google.maps.LatLngBounds();
+                    data.jobs.forEach(j => bounds.extend(new google.maps.LatLng(j.lat, j.lng)));
+                    map.fitBounds(bounds);
+                } else {
+                    alert('No jobs found within the selected radius.');
+                }
+            } else if (data.error) {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching nearby jobs:', err);
+            alert('Error fetching jobs. Try again.');
+        });
 }
 
 // Show detailed job information
