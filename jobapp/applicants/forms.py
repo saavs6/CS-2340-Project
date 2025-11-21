@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from .models import ApplicantProfile, Education, WorkExperience
+from jobs.utils import geocode_address
 
 class ApplicantProfileForm(forms.ModelForm):
     """Form for creating and editing applicant profiles"""
@@ -114,14 +115,33 @@ class ApplicantProfileForm(forms.ModelForm):
             self.fields['email'].initial = self.instance.user.email
 
     def save(self, commit=True):
-        profile = super().save(commit)
+        profile = super().save(commit=False)
+        
+        # Geocode the address if coordinates are not already set and we have location data
+        if not profile.latitude or not profile.longitude:
+            if profile.city or profile.state or profile.country:
+                lat, lng = geocode_address(
+                    address=None,  # Applicants don't have full_address field
+                    city=profile.city,
+                    state=profile.state,
+                    country=profile.country,
+                    postal_code=profile.postal_code
+                )
+                if lat and lng:
+                    profile.latitude = lat
+                    profile.longitude = lng
+        
         email = self.cleaned_data.get('email', '').strip()
         # Update the related user email
         if getattr(profile, 'user', None) is not None:
             profile.user.email = email
+        
+        if commit:
+            profile.save()
             # Always save user if committing the profile
-            if commit:
+            if getattr(profile, 'user', None) is not None:
                 profile.user.save(update_fields=['email'])
+        
         return profile
 
 class EducationForm(forms.ModelForm):

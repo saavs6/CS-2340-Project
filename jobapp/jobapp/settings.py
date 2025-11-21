@@ -150,7 +150,7 @@ STATICFILES_DIRS = [
 ]
 
 # Google Maps API Key
-GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyARxZe7yEhibM1CJZiXMSbNT-pLWgdHd4I')
 
 # Email configuration (safe defaults for development)
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')

@@ -9,6 +9,7 @@ urlpatterns = [
     path('jobs/', views.job_postings, name='job_postings'),
     path('candidates/', views.candidates, name='candidates'),
     path('candidates/<int:pk>/', views.candidate_detail, name='candidate_detail'),
+    path('candidates/map/', views.applicant_map, name='applicant_map'),
     path('jobs/<int:job_id>/applications/', views.job_applications, name='job_applications'),
     path('jobs/<int:job_id>/kanban/', views.kanban_board, name='kanban_board'),
     path('applications/<int:application_id>/', views.application_detail, name='application_detail'),

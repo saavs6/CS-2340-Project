@@ -120,9 +120,28 @@ class ApplicantProfile(models.Model):
         return None
 
     def save(self, *args, **kwargs):
-        """Override save to auto-generate location display"""
+        """Override save to auto-generate location display and geocode coordinates"""
         # Auto-generate location display
         self.location = self.get_full_location()
+        
+        # Auto-geocode coordinates if not set and we have location data
+        if (not self.latitude or not self.longitude) and (self.city or self.state or self.country):
+            try:
+                from jobs.utils import geocode_address
+                lat, lng = geocode_address(
+                    address=None,
+                    city=self.city,
+                    state=self.state,
+                    country=self.country,
+                    postal_code=self.postal_code
+                )
+                if lat and lng:
+                    self.latitude = lat
+                    self.longitude = lng
+            except Exception:
+                # Silently fail if geocoding doesn't work
+                pass
+        
         super().save(*args, **kwargs)
 
     class Meta:

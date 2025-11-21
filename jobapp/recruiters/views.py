@@ -6,6 +6,7 @@ from django.db.models import Q, Count
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 import json
 from accounts.decorators import recruiter_required
 from applicants.models import ApplicantProfile, Education, WorkExperience
@@ -494,3 +495,88 @@ def saved_search_detail(request, pk):
     candidates = qs.order_by('-updated_at')
     template_data = {'title': f'Saved Search: {saved.name}', 'user_type': 'recruiter'}
     return render(request, 'recruiters/saved_search_detail.html', {'template_data': template_data, 'saved': saved, 'candidates': candidates})
+
+@recruiter_required
+def applicant_map(request):
+    """Display map with clusters of applicants by location"""
+    # Get all public applicant profiles with coordinates
+    applicants = ApplicantProfile.objects.filter(
+        is_public=True,
+        latitude__isnull=False,
+        longitude__isnull=False
+    ).select_related('user')
+
+    # Group applicants by location (city + state, or city + country if no state)
+    from collections import defaultdict
+    location_groups = defaultdict(list)
+    
+    for applicant in applicants:
+        # Create location key from city and state/country
+        city = (applicant.city or '').strip().lower()
+        state = (applicant.state or '').strip().lower()
+        country = (applicant.country or '').strip().lower()
+        
+        if city and state:
+            location_key = f"{city}, {state}".title()
+            location_display = f"{applicant.city or ''}, {applicant.state or ''}".strip()
+        elif city and country:
+            location_key = f"{city}, {country}".title()
+            location_display = f"{applicant.city or ''}, {applicant.country or ''}".strip()
+        elif city:
+            location_key = city.title()
+            location_display = applicant.city or ''
+        else:
+            location_key = applicant.location or 'Unknown Location'
+            location_display = applicant.location or 'Unknown Location'
+        
+        location_groups[location_key].append({
+            'id': applicant.id,
+            'name': applicant.user.get_full_name() or applicant.user.username,
+            'username': applicant.user.username,
+            'headline': applicant.headline or 'No headline',
+            'location': location_display,
+            'city': applicant.city or '',
+            'state': applicant.state or '',
+            'country': applicant.country or '',
+            'lat': float(applicant.latitude),
+            'lng': float(applicant.longitude),
+            'skills': applicant.get_skills_list(),
+            'remote_preference': applicant.get_remote_work_preference_display(),
+            'url': f'/recruiters/candidates/{applicant.id}/',
+        })
+    
+    # Create location cluster markers (one per location group)
+    location_markers = []
+    total_applicants = 0
+    
+    for location_key, location_applicants in location_groups.items():
+        # Calculate average coordinates for the location (centroid)
+        avg_lat = sum(app['lat'] for app in location_applicants) / len(location_applicants)
+        avg_lng = sum(app['lng'] for app in location_applicants) / len(location_applicants)
+        
+        location_markers.append({
+            'location_key': location_key,
+            'location_display': location_applicants[0]['location'],
+            'count': len(location_applicants),
+            'lat': avg_lat,
+            'lng': avg_lng,
+            'applicants': location_applicants
+        })
+        
+        total_applicants += len(location_applicants)
+
+    # Serialize location markers to JSON for safe template rendering
+    location_markers_json = json.dumps(location_markers)
+
+    context = {
+        'template_data': {
+            'title': 'Applicant Locations',
+            'user_type': 'recruiter'
+        },
+        'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
+        'location_markers_json': location_markers_json,
+        'applicants_count': total_applicants,
+        'locations_count': len(location_markers)
+    }
+
+    return render(request, 'recruiters/applicant_map.html', context)
