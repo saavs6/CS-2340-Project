@@ -103,15 +103,19 @@
                   class="form-select"
                   required
                 >
-                  <option value="users">All Users</option>
-
-                  <option value="applications">Job Applications</option>
-
-                  <option value="jobs">Job Postings</option>
-
-                  <option value="applicants">Applicant Profiles</option>
-
-                  <option value="recruiters">Recruiter Profiles</option>
+                  <optgroup label="Core Data Exports">
+                    <option value="users">All Users</option>
+                    <option value="applications">Job Applications (Enhanced)</option>
+                    <option value="jobs">Job Postings (with Performance Metrics)</option>
+                    <option value="applicants">Applicant Profiles (with Engagement)</option>
+                    <option value="recruiters">Recruiter Profiles (with Hiring Metrics)</option>
+                  </optgroup>
+                  <optgroup label="Analytics & Insights">
+                    <option value="usage_analytics">Platform Usage Analytics</option>
+                    <option value="skills_analysis">Skills Supply vs Demand Analysis</option>
+                    <option value="daily_trends">Daily Activity Trends</option>
+                    <option value="geographic_analysis">Geographic Distribution</option>
+                  </optgroup>
                 </select>
 
                 <small class="form-text text-muted"
@@ -166,32 +170,24 @@
           <div class="alert alert-info mt-4" role="alert">
             <strong><i class="fas fa-info-circle"></i> Export Details:</strong>
 
-            <ul class="mb-0 mt-2">
-              <li>
-                <strong>All Users:</strong> Exports user accounts with
-                registration dates and user types
-              </li>
-
-              <li>
-                <strong>Job Applications:</strong> Exports all applications with
-                job details, applicant info, and status
-              </li>
-
-              <li>
-                <strong>Job Postings:</strong> Exports all job listings with
-                location, type, and moderation status
-              </li>
-
-              <li>
-                <strong>Applicant Profiles:</strong> Exports applicant details
-                including skills and location
-              </li>
-
-              <li>
-                <strong>Recruiter Profiles:</strong> Exports recruiter company
-                information and details
-              </li>
+            <h6 class="mt-3"><strong>Core Data Exports:</strong></h6>
+            <ul class="mb-2">
+              <li><strong>All Users:</strong> User accounts with registration dates, user types, and activity status</li>
+              <li><strong>Job Applications (Enhanced):</strong> Applications with full job details, applicant profiles, recruiter info, and pipeline status - perfect for funnel analysis</li>
+              <li><strong>Job Postings (with Performance Metrics):</strong> Jobs with application counts, status breakdown, application rate per day, and recruiter details</li>
+              <li><strong>Applicant Profiles (with Engagement):</strong> Applicants with application statistics, engagement frequency, skills count, and activity metrics</li>
+              <li><strong>Recruiter Profiles (with Hiring Metrics):</strong> Recruiters with job posting statistics, application totals, conversion metrics, and company info</li>
             </ul>
+
+            <h6 class="mt-3"><strong>Analytics & Insights Exports:</strong></h6>
+            <ul class="mb-0">
+              <li><strong>Platform Usage Analytics:</strong> Comprehensive platform metrics including user counts, job stats, application conversion rates, and average metrics</li>
+              <li><strong>Skills Supply vs Demand Analysis:</strong> Skills listed in jobs vs skills possessed by applicants, sorted by demand with supply/demand ratios</li>
+              <li><strong>Daily Activity Trends:</strong> Day-by-day breakdown of new users, applicants, recruiters, jobs posted, and applications submitted (defaults to last 90 days)</li>
+              <li><strong>Geographic Distribution:</strong> Location-based clustering of jobs, applicants, and recruiters by city, state, and country</li>
+            </ul>
+
+            <p class="mt-3 mb-0"><small><i class="fas fa-calendar-alt"></i> <strong>Date Filtering:</strong> All exports support optional date range filtering. Analytics exports provide aggregated insights within the date range.</small></p>
           </div>
         </div>
       </div>
