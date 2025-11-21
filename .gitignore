@@ -27,4 +27,6 @@ env/
 .DS_Store
 Thumbs.db
 
-migrations/
+# Ignore IDE files
+.idea/
+.claude/
