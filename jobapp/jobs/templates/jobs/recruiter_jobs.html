@@ -36,8 +36,10 @@
                         <!-- Job Stats -->
                         <div class="mb-3">
                             <small class="text-muted">
-                                Posted {{ job.created_at|timesince }} ago •
-                                {{ job.get_location_display }}
+                                Posted {{ job.created_at|timesince }} ago
+                                {% if job.get_location_display %}
+                                    • {{ job.get_location_display }}
+                                {% endif %}
                             </small>
                             <br>
                             <small class="text-muted">
