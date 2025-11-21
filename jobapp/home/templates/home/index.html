@@ -22,10 +22,17 @@
           <a href="{% url 'jobs:list' %}" class="btn btn-outline-primary btn-lg">Browse Jobs</a>
         {% elif template_data.is_admin %}
           <h4>Welcome admin — manage site content</h4>
-          <p class="lead">You are signed in as an administrator. Browse jobs or access the admin panels below.</p>
-          <a href="{% url 'jobs:list' %}" class="btn btn-outline-primary btn-lg me-3">Browse Jobs</a>
-          <a href="{% url 'home.admin_dashboard' %}" class="btn btn-primary btn-lg me-3">Admin Tools</a>
-          <a href="/admin/" class="btn btn-secondary btn-lg">Django Admin</a>
+          <p class="lead">You are signed in as an administrator. Manage users, browse jobs, or access the admin panels below.</p>
+          <a href="{% url 'home.admin_user_list' %}" class="btn btn-primary btn-lg me-3">
+            <i class="fas fa-users"></i> Manage Users
+          </a>
+          <a href="{% url 'home.admin_dashboard' %}" class="btn btn-outline-primary btn-lg me-3">
+            <i class="fas fa-chart-bar"></i> Admin Tools
+          </a>
+          <a href="{% url 'jobs:list' %}" class="btn btn-outline-secondary btn-lg me-3">Browse Jobs</a>
+          <a href="/admin/" class="btn btn-secondary btn-lg">
+            <i class="fas fa-cog"></i> Django Admin
+          </a>
         {% else %}
           <h4>Welcome to the best job finding site!!</h4>
           <p class="lead">Join thousands of job seekers and employers who trust our platform.</p>

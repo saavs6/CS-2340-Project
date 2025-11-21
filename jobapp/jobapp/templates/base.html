@@ -55,7 +55,12 @@
                 <a class="nav-link" href="{% url 'recruiters:profile' %}">Company Profile</a>
               {% elif template_data.user_type == 'admin' or user.is_staff or user.is_superuser %}
                 <a class="nav-link" href="{% url 'jobs:list' %}">All Jobs</a>
-                <a class="nav-link" href="/admin/">Admin</a>
+                <a class="nav-link" href="{% url 'home.admin_user_list' %}">
+                  <i class="fas fa-users"></i> Manage Users
+                </a>
+                <a class="nav-link" href="/admin/">
+                  <i class="fas fa-cog"></i> Admin Panel
+                </a>
               {% endif %}
 
               <!-- Messages link for all authenticated users -->
