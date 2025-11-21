@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
@@ -12,12 +13,21 @@ from .models import Job, JobApplication
 from .models import JobRecommendation
 from .forms import JobForm, JobSearchForm, JobApplicationForm
 import json
+from django.urls import reverse
 
 # Job Listing and Search Views
 def job_list(request):
     """Public job listing with search functionality"""
     form = JobSearchForm(request.GET or None)
-    jobs = Job.objects.filter(is_active=True)
+    
+    # Determine if user is admin
+    is_admin = request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+    
+    # Admins can see all jobs; regular users see only approved jobs
+    if is_admin:
+        jobs = Job.objects.filter(is_active=True)
+    else:
+        jobs = Job.objects.filter(is_active=True, moderation_status='approved')
 
     # Process search filters from GET parameters directly
     # This handles cases where form validation might fail due to format issues
@@ -85,10 +95,22 @@ def job_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # Get user type safely
+    user_type = None
+    if request.user.is_authenticated:
+        if is_admin:
+            user_type = 'admin'
+        else:
+            try:
+                user_type = request.user.userprofile.user_type
+            except:
+                user_type = None
+
     context = {
         'template_data': {
             'title': 'Find Jobs',
-            'user_type': getattr(request.user.userprofile, 'user_type', None) if request.user.is_authenticated else None
+            'user_type': user_type,
+            'is_admin': is_admin
         },
         'form': form,
         'page_obj': page_obj,
@@ -99,23 +121,42 @@ def job_list(request):
 
 def job_detail(request, pk):
     """Job detail view"""
+    # Determine if user is admin
+    is_admin = request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+
+    # First load the job if it exists and is active; we'll enforce moderation visibility rules below
     job = get_object_or_404(Job, pk=pk, is_active=True)
+
+    # If not admin, only allow viewing if the job is approved or the requesting user is the poster
+    if not is_admin:
+        try:
+            poster = job.posted_by
+        except Exception:
+            poster = None
+        if job.moderation_status != 'approved' and (not request.user.is_authenticated or poster != request.user):
+            raise Http404("No Job matches the given query.")
 
     # Check if user has already applied (for applicants)
     has_applied = False
+    user_type = None
     if request.user.is_authenticated:
-        try:
-            if request.user.userprofile.user_type == 'applicant':
-                has_applied = JobApplication.objects.filter(
-                    job=job, applicant=request.user
-                ).exists()
-        except:
-            pass
+        if is_admin:
+            user_type = 'admin'
+        else:
+            try:
+                user_type = request.user.userprofile.user_type
+                if user_type == 'applicant':
+                    has_applied = JobApplication.objects.filter(
+                        job=job, applicant=request.user
+                    ).exists()
+            except:
+                user_type = None
 
     context = {
         'template_data': {
             'title': job.title,
-            'user_type': getattr(request.user.userprofile, 'user_type', None) if request.user.is_authenticated else None
+            'user_type': user_type,
+            'is_admin': is_admin
         },
         'job': job,
         'has_applied': has_applied
@@ -328,7 +369,14 @@ def application_withdraw(request, pk):
 # Map Views
 def job_map(request):
     """Display map with all job locations for job seekers"""
-    jobs = Job.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
+    # Determine if user is admin
+    is_admin = request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+    
+    # Admins can see all jobs; regular users see only approved jobs
+    if is_admin:
+        jobs = Job.objects.filter(is_active=True, latitude__isnull=False, longitude__isnull=False)
+    else:
+        jobs = Job.objects.filter(is_active=True, moderation_status='approved', latitude__isnull=False, longitude__isnull=False)
 
     # Convert jobs to map markers
     job_markers = []
@@ -346,10 +394,22 @@ def job_map(request):
             'remote_type': job.get_remote_type_display(),
         })
 
+    # Get user type safely
+    user_type = None
+    if request.user.is_authenticated:
+        if is_admin:
+            user_type = 'admin'
+        else:
+            try:
+                user_type = request.user.userprofile.user_type
+            except:
+                user_type = None
+
     context = {
         'template_data': {
             'title': 'Job Map',
-            'user_type': getattr(request.user.userprofile, 'user_type', None) if request.user.is_authenticated else None
+            'user_type': user_type,
+            'is_admin': is_admin
         },
         'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
         'job_markers': job_markers,
@@ -378,6 +438,7 @@ def recruiter_job_map(request):
             'lat': float(job.latitude),
             'lng': float(job.longitude),
             'url': job.get_absolute_url(),
+            'edit_url': reverse('jobs:edit', kwargs={'pk': job.id}),
             'salary': job.get_salary_display(),
             'job_type': job.get_job_type_display(),
             'remote_type': job.get_remote_type_display(),
@@ -412,13 +473,24 @@ def jobs_nearby_api(request):
     except ValueError:
         return JsonResponse({'error': 'Invalid coordinates or radius'}, status=400)
 
+    # Determine if user is admin
+    is_admin = request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+
     # Simple distance calculation (not perfect but works for small distances)
     # In production, you'd want to use PostGIS or similar for accurate distance calculations
-    jobs = Job.objects.filter(
-        is_active=True,
-        latitude__isnull=False,
-        longitude__isnull=False
-    )
+    if is_admin:
+        jobs = Job.objects.filter(
+            is_active=True,
+            latitude__isnull=False,
+            longitude__isnull=False
+        )
+    else:
+        jobs = Job.objects.filter(
+            is_active=True,
+            moderation_status='approved',
+            latitude__isnull=False,
+            longitude__isnull=False
+        )
 
     nearby_jobs = []
     for job in jobs:
@@ -465,6 +537,26 @@ def jobs_without_coordinates_api(request):
 
     return JsonResponse({'jobs': jobs_data})
 
+
+@recruiter_required
+def recruiter_jobs_api(request):
+    """API endpoint to get all recruiter's jobs (with or without coordinates)"""
+    jobs = Job.objects.filter(posted_by=request.user).order_by('-created_at')
+
+    jobs_data = []
+    for job in jobs:
+        jobs_data.append({
+            'id': job.id,
+            'title': job.title,
+            'company': job.company,
+            'location': job.get_location_display(),
+            'lat': float(job.latitude) if job.latitude is not None else None,
+            'lng': float(job.longitude) if job.longitude is not None else None,
+            'has_coordinates': job.latitude is not None and job.longitude is not None
+        })
+
+    return JsonResponse({'jobs': jobs_data})
+
 @recruiter_required
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -480,12 +572,22 @@ def save_job_location(request):
         if not all([job_id, latitude, longitude]):
             return JsonResponse({'error': 'Missing required fields'}, status=400)
 
+        # Validate latitude and longitude are numeric and within valid ranges
+        try:
+            lat_val = float(latitude)
+            lng_val = float(longitude)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Invalid latitude or longitude values'}, status=400)
+
+        if not (-90.0 <= lat_val <= 90.0 and -180.0 <= lng_val <= 180.0):
+            return JsonResponse({'error': 'Latitude or longitude out of valid range'}, status=400)
+
         # Get the job and verify ownership
         job = get_object_or_404(Job, pk=job_id, posted_by=request.user)
 
         # Update job location
-        job.latitude = latitude
-        job.longitude = longitude
+        job.latitude = lat_val
+        job.longitude = lng_val
         if address:
             job.full_address = address
         job.save()

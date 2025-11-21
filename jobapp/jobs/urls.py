@@ -17,6 +17,7 @@ urlpatterns = [
     path('nearby/', views.jobs_nearby_api, name='nearby_api'),
     path('save-location/', views.save_job_location, name='save_location'),
     path('jobs-without-coords/', views.jobs_without_coordinates_api, name='jobs_without_coords'),
+    path('recruiter-jobs-api/', views.recruiter_jobs_api, name='recruiter_jobs_api'),
 
     # Recruiter views
     path('post/', views.job_create, name='create'),
