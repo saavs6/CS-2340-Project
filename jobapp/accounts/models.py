@@ -6,6 +6,7 @@ class UserProfile(models.Model):
     USER_TYPE_CHOICES = [
         ('applicant', 'I\'m looking for a job'),
         ('recruiter', 'I\'m looking to hire'),
+        ('admin', 'Administrator'),
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -19,6 +20,18 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.get_user_type_display()}"
+
+    def is_job_seeker(self):
+        """Check if user is a job seeker/applicant"""
+        return self.user_type == 'applicant'
+
+    def is_recruiter(self):
+        """Check if user is a recruiter"""
+        return self.user_type == 'recruiter'
+
+    def is_admin(self):
+        """Check if user is an admin (by role, staff status, or superuser status)"""
+        return self.user_type == 'admin' or self.user.is_staff or self.user.is_superuser
 
     class Meta:
         verbose_name = "User Profile"

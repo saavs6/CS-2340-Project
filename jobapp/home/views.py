@@ -1,7 +1,12 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden
 from django.contrib.auth.models import User
+from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Q
+from accounts.models import UserProfile
+from .decorators import admin_required
 from jobs.models import Job, JobApplication
 from applicants.models import ApplicantProfile
 from recruiters.models import RecruiterProfile
@@ -814,3 +819,135 @@ def export_csv(request):
             writer.writerow(['Recruiter', loc['city'], loc['state'], loc['country'], loc['count']])
 
     return response
+
+
+@admin_required
+def admin_user_list(request):
+    """Admin view to list and manage all users"""
+    template_data = {}
+    template_data['title'] = 'User Management'
+    template_data['is_admin'] = True
+    template_data['user_type'] = 'admin'
+
+    # Get search query if provided
+    search_query = request.GET.get('search', '').strip()
+    role_filter = request.GET.get('role', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+
+    # Get all users
+    users = User.objects.all().select_related('userprofile').order_by('-date_joined')
+
+    # Apply search filter
+    if search_query:
+        users = users.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query)
+        )
+
+    # Apply role filter
+    if role_filter:
+        if role_filter == 'staff':
+            users = users.filter(Q(is_staff=True) | Q(is_superuser=True))
+        else:
+            users = users.filter(userprofile__user_type=role_filter)
+
+    # Apply status filter
+    if status_filter:
+        is_active = status_filter == 'active'
+        users = users.filter(is_active=is_active)
+
+    # Paginate results
+    paginator = Paginator(users, 20)  # Show 20 users per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Add profile information for each user
+    users_data = []
+    for user in page_obj:
+        user_data = {
+            'user': user,
+            'profile': None,
+            'user_type': None,
+            'user_type_display': 'Unknown',
+        }
+
+        # Try to get user profile
+        try:
+            user_data['profile'] = user.userprofile
+            user_data['user_type'] = user.userprofile.user_type
+            user_data['user_type_display'] = user.userprofile.get_user_type_display()
+        except:
+            # If no profile, check if staff/superuser
+            if user.is_staff or user.is_superuser:
+                user_data['user_type'] = 'admin'
+                user_data['user_type_display'] = 'Admin/Staff'
+
+        users_data.append(user_data)
+
+    template_data['users_data'] = users_data
+    template_data['page_obj'] = page_obj
+    template_data['search_query'] = search_query
+    template_data['role_filter'] = role_filter
+    template_data['status_filter'] = status_filter
+    template_data['user_type_choices'] = UserProfile.USER_TYPE_CHOICES
+
+    return render(request, 'home/admin_user_list.html', {'template_data': template_data})
+
+
+@admin_required
+def admin_edit_user_role(request, user_id):
+    """Admin endpoint to edit a user's role"""
+    if request.method != 'POST':
+        return HttpResponseForbidden("This endpoint only accepts POST requests.")
+
+    user = get_object_or_404(User, id=user_id)
+    new_role = request.POST.get('role', '').strip()
+
+    # Validate the new role
+    valid_roles = [choice[0] for choice in UserProfile.USER_TYPE_CHOICES]
+    if new_role not in valid_roles:
+        messages.error(request, f"Invalid role: {new_role}")
+        return redirect('home.admin_user_list')
+
+    # Get or create UserProfile
+    try:
+        profile = user.userprofile
+        old_role = profile.user_type
+        profile.user_type = new_role
+        profile.save()
+    except UserProfile.DoesNotExist:
+        # Create new profile if it doesn't exist
+        profile = UserProfile.objects.create(user=user, user_type=new_role)
+        old_role = 'none'
+
+    # If changing to admin, grant staff privileges
+    if new_role == 'admin' and not user.is_staff:
+        user.is_staff = True
+        user.save()
+
+    messages.success(request, f"User {user.username}'s role changed from {old_role} to {new_role}")
+    return redirect('home.admin_user_list')
+
+
+@admin_required
+def admin_toggle_user_active(request, user_id):
+    """Admin endpoint to activate/deactivate a user"""
+    if request.method != 'POST':
+        return HttpResponseForbidden("This endpoint only accepts POST requests.")
+
+    user = get_object_or_404(User, id=user_id)
+
+    # Prevent admin from deactivating themselves
+    if user.id == request.user.id:
+        messages.error(request, "You cannot deactivate your own account.")
+        return redirect('home.admin_user_list')
+
+    # Toggle active status
+    user.is_active = not user.is_active
+    user.save()
+
+    status = "activated" if user.is_active else "deactivated"
+    messages.success(request, f"User {user.username} has been {status}.")
+    return redirect('home.admin_user_list')
