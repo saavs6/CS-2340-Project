@@ -38,10 +38,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-5pyeq&u%v1@b(f)-gx7h5*!$m$tvlk+61$gghq2_9ig7u$l+7$')
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes', 'on')
+DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes', 'on')
 
 ALLOWED_HOSTS = []
 
@@ -149,12 +149,12 @@ STATICFILES_DIRS = [
     BASE_DIR / 'jobapp/static/',
 ]
 
-# Google Maps API Key
-GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyARxZe7yEhibM1CJZiXMSbNT-pLWgdHd4I')
+# Google Maps API Key (read from environment variable)
+GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 
-# Email configuration (safe defaults for development)
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@localhost')
+# Email configuration (read from environment variables)
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', '')
 EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '0') or 0)
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'False').lower() in ('true', '1', 'yes', 'on')
