@@ -41,14 +41,8 @@ def profile(request):
 
 @recruiter_required
 def job_postings(request):
-    """Manage job postings"""
-    template_data = {
-        'title': 'Job Postings',
-        'user_type': 'recruiter'
-    }
-    return render(request, 'recruiters/job_postings.html', {
-        'template_data': template_data
-    })
+    """Manage job postings - redirect to jobs:recruiter_jobs"""
+    return redirect('jobs:recruiter_jobs')
 
 @recruiter_required
 def candidates(request):
