@@ -562,6 +562,36 @@ def applicant_map(request):
     # Serialize location markers to JSON for safe template rendering
     location_markers_json = json.dumps(location_markers)
 
+    # Also prepare individual applicant markers for client-side clustering
+    applicant_markers = []
+    for applicant in applicants:
+        applicant_markers.append({
+            'id': applicant.id,
+            'name': applicant.user.get_full_name() or applicant.user.username,
+            'username': applicant.user.username,
+            'headline': applicant.headline or 'No headline',
+            'location': applicant.location or applicant.get_full_location(),
+            'city': applicant.city or '',
+            'state': applicant.state or '',
+            'country': applicant.country or '',
+            'lat': float(applicant.latitude),
+            'lng': float(applicant.longitude),
+            'skills': applicant.get_skills_list(),
+            'remote_preference': applicant.get_remote_work_preference_display(),
+            'url': f'/recruiters/candidates/{applicant.id}/',
+        })
+
+    applicant_markers_json = json.dumps(applicant_markers)
+
+    # Recompute counts in a way that matches the individual markers
+    applicants_count = len(applicant_markers)
+    # Count distinct coordinate pairs for locations_count (use rounded values to avoid float noise)
+    unique_coords = set()
+    for m in applicant_markers:
+        # round to 6 decimal places to match DB precision
+        unique_coords.add((round(m['lat'], 6), round(m['lng'], 6)))
+    locations_count = len(unique_coords)
+
     context = {
         'template_data': {
             'title': 'Applicant Locations',
@@ -569,8 +599,9 @@ def applicant_map(request):
         },
         'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
         'location_markers_json': location_markers_json,
-        'applicants_count': total_applicants,
-        'locations_count': len(location_markers)
+        'applicant_markers_json': applicant_markers_json,
+        'applicants_count': applicants_count,
+        'locations_count': locations_count
     }
 
     return render(request, 'recruiters/applicant_map.html', context)

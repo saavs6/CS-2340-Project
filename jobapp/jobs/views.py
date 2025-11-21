@@ -416,6 +416,21 @@ def job_map(request):
         'jobs_count': jobs.count()
     }
 
+    # If the authenticated user has an applicant profile with coordinates, expose them
+    profile_location = None
+    if request.user.is_authenticated:
+        try:
+            ap = request.user.applicant_profile
+            if ap and ap.has_coordinates():
+                profile_location = {
+                    'lat': float(ap.latitude),
+                    'lng': float(ap.longitude)
+                }
+        except Exception:
+            profile_location = None
+
+    context['profile_location'] = profile_location
+
     return render(request, 'jobs/job_map.html', context)
 
 @recruiter_required

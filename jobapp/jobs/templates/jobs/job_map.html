@@ -81,10 +81,19 @@ let markers = [];
 let infoWindow;
 let userLocation = null;
 let userMarker = null;
+// profileLocation is provided by server when user has saved coordinates in their profile
+const profileLocation = {{ profile_location|default:'null'|safe }};
 
 // Initialize the map
 function initMap() {
-    // Try to get user's current location first
+    // Prefer profileLocation (server-provided) if set, otherwise use device geolocation
+    if (profileLocation) {
+        userLocation = profileLocation;
+        initializeMapWithLocation(userLocation);
+        return;
+    }
+
+    // Try to get user's current device location
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             function(position) {
@@ -124,7 +133,8 @@ function initializeMapWithLocation(center) {
             map: map,
             title: 'Your location',
             icon: {
-                url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                // Use a distinct icon when the location comes from profile vs device
+                url: profileLocation ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png' : 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
                 scaledSize: new google.maps.Size(28, 28)
             }
         });

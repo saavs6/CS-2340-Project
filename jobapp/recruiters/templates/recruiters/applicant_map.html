@@ -35,15 +35,20 @@
 
 <!-- Google Maps API -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initMap" async defer></script>
+<!-- MarkerClusterer (for client-side clustering) -->
+<script src="https://unpkg.com/@google/markerclustererplus@4.0.1/dist/markerclustererplus.min.js"></script>
 
 <script>
 let map;
 let markers = [];
 let infoWindow;
 let userLocation = null;
+let userMarker = null;
 
 // Get location markers data (parsed from JSON)
 const locationMarkers = JSON.parse('{{ location_markers_json|escapejs }}');
+// Individual applicant markers for clustering
+const applicantMarkers = JSON.parse('{{ applicant_markers_json|escapejs }}');
 
 function calculateCenterFromLocations() {
     if (locationMarkers.length === 0) {
@@ -105,54 +110,30 @@ function initializeMapWithLocation(center) {
 
     infoWindow = new google.maps.InfoWindow();
 
-    // Create markers for each location (similar to job map)
+    // Create individual markers for each applicant and use MarkerClusterer to group by proximity
     markers = [];
-    locationMarkers.forEach(location => {
-        // Choose icon color based on number of applicants
-        let iconColor = 'red-dot.png'; // Default for 1 person
-        if (location.count >= 10) {
-            iconColor = 'purple-dot.png';
-        } else if (location.count >= 5) {
-            iconColor = 'orange-dot.png';
-        } else if (location.count >= 2) {
-            iconColor = 'yellow-dot.png';
-        }
-        
+    applicantMarkers.forEach(applicant => {
         const marker = new google.maps.Marker({
-            position: { lat: location.lat, lng: location.lng },
-            map: map,
-            title: `${location.location_display} (${location.count} applicant${location.count > 1 ? 's' : ''})`,
+            position: { lat: applicant.lat, lng: applicant.lng },
+            title: `${applicant.name}`,
+            // small generic icon; clusters will aggregate
             icon: {
-                url: `https://maps.google.com/mapfiles/ms/icons/${iconColor}`,
-                scaledSize: new google.maps.Size(30, 30)
+                url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                scaledSize: new google.maps.Size(24, 24)
             }
         });
 
-        // Create info window content showing all applicants in this location
-        let applicantsList = '';
-        location.applicants.forEach((applicant, index) => {
-            const skillsList = applicant.skills && applicant.skills.length > 0 
-                ? applicant.skills.slice(0, 3).join(', ') + (applicant.skills.length > 3 ? '...' : '')
-                : 'No skills listed';
-            
-            applicantsList += `
-                <div class="mb-2 ${index > 0 ? 'mt-2 pt-2 border-top' : ''}">
-                    <h6 class="mb-1">${escapeHtml(applicant.name)}</h6>
-                    <p class="mb-1 small"><strong>Headline:</strong> ${escapeHtml(applicant.headline)}</p>
-                    <p class="mb-1 small"><strong>Skills:</strong> ${escapeHtml(skillsList)}</p>
-                    <p class="mb-1 small"><strong>Remote:</strong> ${escapeHtml(applicant.remote_preference)}</p>
-                    <a href="${applicant.url}" class="btn btn-sm btn-primary mt-1">View Profile</a>
-                </div>
-            `;
-        });
-        
+        const skillsList = applicant.skills && applicant.skills.length > 0
+            ? applicant.skills.slice(0, 3).join(', ') + (applicant.skills.length > 3 ? '...' : '')
+            : 'No skills listed';
+
         const infoContent = `
-            <div class="location-marker-info" style="min-width: 300px; max-height: 400px; overflow-y: auto;">
-                <h6 class="mb-2">${escapeHtml(location.location_display)}</h6>
-                <p class="mb-2"><strong>${location.count} applicant${location.count > 1 ? 's' : ''} in this location</strong></p>
-                <div class="applicants-list">
-                    ${applicantsList}
-                </div>
+            <div class="applicant-marker-info" style="min-width:220px">
+                <h6 class="mb-1">${escapeHtml(applicant.name)}</h6>
+                <p class="mb-1 small"><strong>Headline:</strong> ${escapeHtml(applicant.headline)}</p>
+                <p class="mb-1 small"><strong>Location:</strong> ${escapeHtml(applicant.location)}</p>
+                <p class="mb-1 small"><strong>Skills:</strong> ${escapeHtml(skillsList)}</p>
+                <a href="${applicant.url}" class="btn btn-sm btn-primary mt-1">View Profile</a>
             </div>
         `;
 
@@ -161,11 +142,61 @@ function initializeMapWithLocation(center) {
             infoWindow.open(map, marker);
         });
 
+        marker.setMap(map);
         markers.push(marker);
     });
 
-    // Fit map to show all markers
-    if (locationMarkers.length > 0) {
+    // Fit map to show all markers using bounds (avoids centering at arithmetic mean)
+    if (markers.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        markers.forEach(m => bounds.extend(m.getPosition()));
+
+        if (userLocation) {
+            // Center map on the recruiter's device location per request
+            const centerLatLng = new google.maps.LatLng(userLocation.lat, userLocation.lng);
+            map.setCenter(centerLatLng);
+
+            // Place or update a visible user marker
+            if (!userMarker) {
+                userMarker = new google.maps.Marker({
+                    position: centerLatLng,
+                    map: map,
+                    title: 'Your location',
+                    icon: {
+                        url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                        scaledSize: new google.maps.Size(28, 28)
+                    }
+                });
+            } else {
+                userMarker.setPosition(centerLatLng);
+                userMarker.setMap(map);
+            }
+
+            // Set a reasonable default zoom so the user location is emphasized.
+            // If you'd prefer to ensure markers are visible as well, we can compute zoom to include bounds.
+            map.setZoom(11);
+        } else {
+            map.fitBounds(bounds);
+        }
+    }
+
+    // Initialize MarkerClusterer to cluster individual applicant markers
+    if (markers.length > 0 && typeof MarkerClusterer !== 'undefined') {
+        // gridSize controls how close markers must be in pixels to form a cluster
+        // minimumClusterSize controls the minimum markers in a cluster
+        const clusterer = new MarkerClusterer(map, markers, {
+            imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
+            gridSize: 60, // pixels — increase to make clusters looser
+            minimumClusterSize: 2,
+            maxZoom: 15
+        });
+
+        // Optional: when clicking a cluster, zoom in one level (default may vary by library)
+        // clusterer.addListener('clusterclick', function(cluster) { map.fitBounds(cluster.getBounds()); });
+    }
+
+    // Fit map to show all location markers only if we didn't center on the user's device
+    if (!userLocation && locationMarkers.length > 0) {
         const bounds = new google.maps.LatLngBounds();
         locationMarkers.forEach(location => {
             bounds.extend(new google.maps.LatLng(location.lat, location.lng));
